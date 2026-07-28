@@ -1,12 +1,16 @@
+// ==========================================
+//           SOLICIO APP LOGIC
+// ==========================================
+
 // --- Local Storage API Key Management ---
 const apiKeyInput = document.getElementById('apiKeyInput');
 const saveKeyBtn = document.getElementById('saveKeyBtn');
 const keyStatus = document.getElementById('keyStatus');
 
-apiKeyInput.value = localStorage.getItem('os_gemini_key') || '';
+apiKeyInput.value = localStorage.getItem('solicio_gemini_key') || localStorage.getItem('os_gemini_key') || '';
 
 saveKeyBtn.addEventListener('click', () => {
-  localStorage.setItem('os_gemini_key', apiKeyInput.value.trim());
+  localStorage.setItem('solicio_gemini_key', apiKeyInput.value.trim());
   keyStatus.textContent = '✓ Key Saved locally!';
   setTimeout(() => {
     keyStatus.textContent = 'Stored in browser localStorage';
@@ -19,9 +23,8 @@ function getYouTubeId(url) {
   return match ? match[1] : null;
 }
 
-// --- Bulletproof Gemini API Cascade Runner ---
+// --- Dynamic Model Cascade Runner for Solicio ---
 async function callGeminiWithFallback(apiKey, prompt) {
-  // Priority order of Flash models to try sequentially
   const models = [
     'gemini-2.5-flash',
     'gemini-2.0-flash',
@@ -34,7 +37,7 @@ async function callGeminiWithFallback(apiKey, prompt) {
 
   for (const model of models) {
     try {
-      console.log(`[OpenShorts] Requesting endpoint: ${model}...`);
+      console.log(`[Solicio] Trying API model: ${model}...`);
       const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -43,38 +46,35 @@ async function callGeminiWithFallback(apiKey, prompt) {
 
       const data = await res.json();
 
-      // If model deprecated or not permitted for key, capture error & cascade to next model
       if (!res.ok || data.error) {
         lastErrorMessage = data.error?.message || `HTTP ${res.status}`;
-        console.warn(`[OpenShorts] Model ${model} unavailable: ${lastErrorMessage}. Trying next...`);
+        console.warn(`[Solicio] ${model} warning: ${lastErrorMessage}. Trying fallback...`);
         continue;
       }
 
       if (!data.candidates || data.candidates.length === 0 || !data.candidates[0].content) {
-        lastErrorMessage = `Model ${model} returned empty candidates.`;
-        console.warn(`[OpenShorts] ${lastErrorMessage}. Trying next...`);
+        lastErrorMessage = `${model} returned empty response.`;
+        console.warn(`[Solicio] ${lastErrorMessage}. Trying fallback...`);
         continue;
       }
 
-      // Successful response
-      console.log(`[OpenShorts] Successfully generated highlights using model: ${model}`);
+      console.log(`[Solicio] Successfully retrieved clips with model: ${model}`);
       return { data, modelUsed: model };
 
     } catch (err) {
       lastErrorMessage = err.message;
-      console.warn(`[OpenShorts] Fetch exception on model ${model}:`, err);
+      console.warn(`[Solicio] Fetch error on ${model}:`, err);
     }
   }
 
-  throw new Error(`All model endpoints failed. Last response error: ${lastErrorMessage}`);
+  throw new Error(`All Gemini API endpoints failed. Detail: ${lastErrorMessage}`);
 }
 
-// --- Gemini AI Highlight Analyzer ---
+// --- Solicio AI Highlight Analyzer ---
 document.getElementById('analyzeBtn').addEventListener('click', async () => {
-  const apiKey = localStorage.getItem('os_gemini_key');
+  const apiKey = localStorage.getItem('solicio_gemini_key') || localStorage.getItem('os_gemini_key');
   const url = document.getElementById('ytUrlInput').value.trim();
   const status = document.getElementById('statusText');
-  const clipsGrid = document.getElementById('clipsGrid');
 
   if (!apiKey) {
     alert("Please save your Gemini API Key in the sidebar first.");
@@ -88,9 +88,8 @@ document.getElementById('analyzeBtn').addEventListener('click', async () => {
   }
 
   status.style.color = "var(--teal)";
-  status.textContent = "Analyzing video structure with Gemini AI...";
+  status.textContent = "Analyzing video highlights with Solicio AI...";
 
-  // Structured Prompt for Gemini
   const prompt = `Analyze this video context for YouTube ID "${videoId}".
   Identify 3 viral 30-second highlight segments. 
   Respond ONLY with a valid JSON array matching this exact schema:
@@ -99,10 +98,8 @@ document.getElementById('analyzeBtn').addEventListener('click', async () => {
   ]`;
 
   try {
-    // Call the dynamic fallback runner
     const { data, modelUsed } = await callGeminiWithFallback(apiKey, prompt);
 
-    // Extract and parse clean JSON
     const rawText = data.candidates[0].content.parts[0].text;
     const cleanJson = rawText.replace(/```json|```/g, '').trim();
     const clips = JSON.parse(cleanJson);
@@ -111,12 +108,13 @@ document.getElementById('analyzeBtn').addEventListener('click', async () => {
     status.textContent = `Found ${clips.length} highlight clips using ${modelUsed}!`;
 
   } catch (err) {
-    console.error("Gemini API Error:", err);
+    console.error("[Solicio] Error:", err);
     status.style.color = "var(--red)";
     status.textContent = `Error: ${err.message}`;
   }
 });
 
+// Render 9:16 Vertical Cropped Preview Cards
 function renderClipPreviews(videoId, clips) {
   const grid = document.getElementById('clipsGrid');
   grid.innerHTML = '';
@@ -128,10 +126,10 @@ function renderClipPreviews(videoId, clips) {
       <div class="iframe-container">
         <iframe src="https://www.youtube-nocookie.com/embed/${videoId}?start=${clip.start}&end=${clip.end}&autoplay=0" allowfullscreen></iframe>
       </div>
-      <h4 style="margin: 8px 0; font-size: 14px;">${clip.title}</h4>
+      <h4 style="margin: 12px 0 4px 0; font-size: 15px; font-weight: 600;">${clip.title}</h4>
       <p class="hint">${clip.start}s - ${clip.end}s</p>
       <p class="hint" style="margin-top: 4px;">${clip.reason}</p>
-      <button class="btn-secondary" onclick="setCropRange(${clip.start}, ${clip.end})" style="margin-top: 8px;">Select for Local Crop</button>
+      <button class="btn-secondary" onclick="setCropRange(${clip.start}, ${clip.end})" style="margin-top: 10px; width: 100%;">Select for Local Crop</button>
     `;
     grid.appendChild(card);
   });
@@ -143,7 +141,7 @@ function setCropRange(start, end) {
   window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
 }
 
-// --- Local FFmpeg.wasm Video Cropper ---
+// --- Local FFmpeg.wasm Engine for Solicio ---
 const { FFmpeg } = FFmpegWASM;
 const { fetchFile, toBlobURL } = FFmpegUtil;
 let ffmpeg = null;
@@ -160,7 +158,7 @@ document.getElementById('renderBtn').addEventListener('click', async () => {
   }
 
   renderBtn.disabled = true;
-  renderBtn.textContent = "Loading Engine...";
+  renderBtn.textContent = "Loading Solicio Engine...";
 
   try {
     if (!ffmpeg) {
