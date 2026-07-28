@@ -1,76 +1,43 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>OpenShorts — In-Browser Clip Generator</title>
-  <link rel="stylesheet" href="styles.css">
-  
-  <!-- Load FFmpeg WebAssembly -->
-  <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.10/dist/umd/ffmpeg.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/util@0.12.1/dist/umd/util.min.js"></script>
-  <!-- Load YouTube Iframe API -->
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Solicio AI - Zero-Backend Shorts Generator</title>
+  <link rel="stylesheet" href="style.css" />
+  <!-- YouTube Iframe API -->
   <script src="https://www.youtube.com/iframe_api"></script>
 </head>
 <body>
 
   <div class="sidebar">
-    <div class="brand">⚡ OpenShorts</div>
-    
-    <div class="section-label">Configuration</div>
-    <label class="field">
-      <span>Gemini API Key</span>
-      <input type="password" id="apiKeyInput" placeholder="AIzaSy...">
-    </label>
-    <button id="saveKeyBtn" class="btn-secondary">Save Key</button>
-    <div id="keyStatus" class="hint">Stored in browser localStorage</div>
+    <h2>Solicio AI</h2>
+    <p class="hint">Instant Short-Form Clip Generator</p>
+    <hr />
+    <label for="apiKeyInput">Gemini API Key:</label>
+    <input type="password" id="apiKeyInput" placeholder="AIzaSy..." />
+    <button id="saveKeyBtn">Save API Key</button>
+    <p id="keyStatus" class="hint">Stored locally in browser</p>
   </div>
 
   <div class="main-content">
-    <h1>Clip Generator</h1>
-    <p class="subtitle">100% Client-Side Video Highlighter & Cropper</p>
+    <h1>Solicio Clip Engine</h1>
+    <p>Paste a YouTube URL to automatically detect viral highlights and generate pre-cut 9:16 vertical shorts.</p>
 
-    <div class="card">
-      <div class="section-label">1. Source Video</div>
-      <label class="field">
-        <span>Paste YouTube URL</span>
-        <input type="text" id="ytUrlInput" placeholder="https://www.youtube.com/watch?v=dQw4w9WgXcQ">
-      </label>
-      
-      <button id="analyzeBtn" class="btn-primary">Find Highlights with AI</button>
-      <div id="statusText" class="status-msg"></div>
+    <div class="input-group">
+      <input type="text" id="ytUrlInput" placeholder="https://www.youtube.com/watch?v=..." />
+      <button id="analyzeBtn" class="btn-primary">Analyze Video</button>
     </div>
 
-    <!-- Highlights Grid -->
-    <div class="section-label">2. Suggested Highlights</div>
-    <div id="clipsGrid" class="clips-grid">
-      <p class="hint">Paste a video link above to extract viral clip moments.</p>
-    </div>
+    <p id="statusText" class="status-msg"></p>
 
-    <!-- Local Render Card -->
-    <div class="card" style="margin-top: 30px;">
-      <div class="section-label">3. Local 9:16 Render (FFmpeg.wasm)</div>
-      <p class="hint">Have the source MP4 on your computer? Drop it here to crop your favorite clip vertically.</p>
-      
-      <input type="file" id="localFileInput" accept="video/mp4">
-      <div class="row">
-        <label class="field">
-          <span>Start (sec)</span>
-          <input type="number" id="cropStart" value="0">
-        </label>
-        <label class="field">
-          <span>End (sec)</span>
-          <input type="number" id="cropEnd" value="30">
-        </label>
-      </div>
-      <button id="renderBtn" class="btn-primary">Render Vertical Clip</button>
-      
-      <div id="renderOutput" class="render-output" style="display:none;">
-        <video id="renderedVideo" controls></video>
-        <a id="downloadLink" download="clip.mp4">
-          <button class="btn-success">Download Clip</button>
-        </a>
-      </div>
+    <!-- Pre-cut Clip Cards rendered here -->
+    <div id="clipsGrid" class="clips-grid"></div>
+
+    <!-- Hidden processing container for real-time canvas capture -->
+    <div id="hiddenCaptureContainer" style="display: none;">
+      <div id="ytPlayer"></div>
+      <canvas id="cropCanvas" width="720" height="1280"></canvas>
     </div>
   </div>
 
