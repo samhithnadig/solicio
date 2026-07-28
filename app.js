@@ -8,7 +8,9 @@ apiKeyInput.value = localStorage.getItem('os_gemini_key') || '';
 saveKeyBtn.addEventListener('click', () => {
   localStorage.setItem('os_gemini_key', apiKeyInput.value.trim());
   keyStatus.textContent = '✓ Key Saved locally!';
-  setTimeout(() => keyStatus.textContent = 'Stored in browser localStorage', 2000);
+  setTimeout(() => {
+    keyStatus.textContent = 'Stored in browser localStorage';
+  }, 2000);
 });
 
 // --- Extract YouTube Video ID ---
@@ -24,13 +26,21 @@ document.getElementById('analyzeBtn').addEventListener('click', async () => {
   const status = document.getElementById('statusText');
   const clipsGrid = document.getElementById('clipsGrid');
 
-  if (!apiKey) return alert("Please save your Gemini API Key in the sidebar first.");
-  const videoId = getYouTubeId(url);
-  if (!videoId) return alert("Please enter a valid YouTube URL.");
+  if (!apiKey) {
+    alert("Please save your Gemini API Key in the sidebar first.");
+    return;
+  }
 
+  const videoId = getYouTubeId(url);
+  if (!videoId) {
+    alert("Please enter a valid YouTube URL.");
+    return;
+  }
+
+  status.style.color = "var(--teal)";
   status.textContent = "Analyzing video structure with Gemini AI...";
 
-  // Structured Prompt for Gemini Flash
+  // Structured Prompt for Gemini
   const prompt = `Analyze this video context for YouTube ID "${videoId}".
   Identify 3 viral 30-second highlight segments. 
   Respond ONLY with a valid JSON array matching this exact schema:
@@ -46,13 +56,28 @@ document.getElementById('analyzeBtn').addEventListener('click', async () => {
     });
 
     const data = await res.json();
+
+    // 1. Verify HTTP / JSON API errors
+    if (!res.ok || data.error) {
+      throw new Error(data.error?.message || `HTTP ${res.status} Error`);
+    }
+
+    // 2. Verify response candidate structure exists
+    if (!data.candidates || data.candidates.length === 0 || !data.candidates[0].content) {
+      throw new Error("Gemini returned an empty response or flagged the prompt content.");
+    }
+
+    // 3. Extract and parse clean JSON
     const rawText = data.candidates[0].content.parts[0].text;
     const cleanJson = rawText.replace(/```json|```/g, '').trim();
     const clips = JSON.parse(cleanJson);
 
     renderClipPreviews(videoId, clips);
     status.textContent = `Found ${clips.length} highlight clips!`;
+
   } catch (err) {
+    console.error("Gemini API Error:", err);
+    status.style.color = "var(--red)";
     status.textContent = `Error: ${err.message}`;
   }
 });
@@ -94,7 +119,10 @@ document.getElementById('renderBtn').addEventListener('click', async () => {
   const end = document.getElementById('cropEnd').value;
   const renderBtn = document.getElementById('renderBtn');
 
-  if (!fileInput) return alert("Please choose a local MP4 file to crop.");
+  if (!fileInput) {
+    alert("Please choose a local MP4 file to crop.");
+    return;
+  }
 
   renderBtn.disabled = true;
   renderBtn.textContent = "Loading Engine...";
@@ -130,6 +158,7 @@ document.getElementById('renderBtn').addEventListener('click', async () => {
     document.getElementById('renderedVideo').src = url;
     document.getElementById('downloadLink').href = url;
     document.getElementById('renderOutput').style.display = 'block';
+
   } catch (e) {
     alert("Render error: " + e.message);
   } finally {
