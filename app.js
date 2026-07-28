@@ -189,3 +189,74 @@ async function autoGenerateCutClip(videoId, start, end, idx) {
     mediaRecorder.stop();
   }, durationSec * 1000);
 }
+// Function to fetch AI viral highlights using Gemini
+async function fetchGeminiViralHighlights(transcriptArray, videoDuration) {
+  // Insert your Gemini API Key here or load it from environment variables
+  const GEMINI_API_KEY = "YOUR_GEMINI_API_KEY_HERE"; 
+  const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+
+  // 1. Format the full transcript with explicit timestamps
+  const formattedTranscript = transcriptArray
+    .map((item) => `[${Math.floor(item.start)}s]: ${item.text}`)
+    .join("\n");
+
+  // 2. Strict system instructions requiring full-timeline evaluation
+  const systemPrompt = `You are an elite short-form video editor for TikTok, YouTube Shorts, and Instagram Reels.
+You are given the COMPLETE transcript of a YouTube video with timestamped seconds.
+Total video duration: ${videoDuration || "Unknown"} seconds.
+
+YOUR TASK:
+Analyze the ENTIRE transcript from second 0 to the very last timestamp. Identify the top 3 most VIRAL clip moments (each between 30 and 60 seconds long).
+
+CRITICAL CONSTRAINTS:
+1. You MUST evaluate timestamps across the FULL timeline. Do NOT restrict your selection to the first 5 minutes (0-300 seconds).
+2. Prioritize moments with high curiosity, nostalgic appeal, retro/rare technology, or dramatic reveals.
+3. At least TWO of your chosen clips MUST come from later parts of the video if the video duration is over 10 minutes (600s+).
+
+Return ONLY a raw JSON array of 3 objects with no markdown formatting.
+JSON Format:
+[
+  {
+    "clip_title": "Short catchy title",
+    "start_time": 962,
+    "end_time": 1015,
+    "why_it_will_go_viral": "Brief explanation of the psychological hook."
+  }
+]`;
+
+  try {
+    const response = await fetch(geminiUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [
+          {
+            role: "user",
+            parts: [
+              { text: systemPrompt },
+              { text: `FULL TRANSCRIPT:\n${formattedTranscript}` }
+            ]
+          }
+        ],
+        generationConfig: {
+          responseMimeType: "application/json",
+          maxOutputTokens: 2048
+        }
+      })
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.error?.message || "Gemini API Request Failed");
+    }
+
+    const rawText = data.candidates[0].content.parts[0].text;
+    const clips = JSON.parse(rawText);
+
+    console.log("Viral Clips Picked by Gemini:", clips);
+    return clips;
+  } catch (error) {
+    console.error("Error generating highlights:", error);
+    return null;
+  }
+}
