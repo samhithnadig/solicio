@@ -194,3 +194,9 @@ button:disabled {
   opacity: 0 !important;
   pointer-events: none !important;
 }
+footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+}
