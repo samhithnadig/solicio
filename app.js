@@ -19,6 +19,56 @@ function getYouTubeId(url) {
   return match ? match[1] : null;
 }
 
+// --- Bulletproof Gemini API Cascade Runner ---
+async function callGeminiWithFallback(apiKey, prompt) {
+  // Priority order of Flash models to try sequentially
+  const models = [
+    'gemini-2.5-flash',
+    'gemini-2.0-flash',
+    'gemini-1.5-flash',
+    'gemini-flash-latest',
+    'gemini-2.5-flash-lite'
+  ];
+
+  let lastErrorMessage = '';
+
+  for (const model of models) {
+    try {
+      console.log(`[OpenShorts] Requesting endpoint: ${model}...`);
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+      });
+
+      const data = await res.json();
+
+      // If model deprecated or not permitted for key, capture error & cascade to next model
+      if (!res.ok || data.error) {
+        lastErrorMessage = data.error?.message || `HTTP ${res.status}`;
+        console.warn(`[OpenShorts] Model ${model} unavailable: ${lastErrorMessage}. Trying next...`);
+        continue;
+      }
+
+      if (!data.candidates || data.candidates.length === 0 || !data.candidates[0].content) {
+        lastErrorMessage = `Model ${model} returned empty candidates.`;
+        console.warn(`[OpenShorts] ${lastErrorMessage}. Trying next...`);
+        continue;
+      }
+
+      // Successful response
+      console.log(`[OpenShorts] Successfully generated highlights using model: ${model}`);
+      return { data, modelUsed: model };
+
+    } catch (err) {
+      lastErrorMessage = err.message;
+      console.warn(`[OpenShorts] Fetch exception on model ${model}:`, err);
+    }
+  }
+
+  throw new Error(`All model endpoints failed. Last response error: ${lastErrorMessage}`);
+}
+
 // --- Gemini AI Highlight Analyzer ---
 document.getElementById('analyzeBtn').addEventListener('click', async () => {
   const apiKey = localStorage.getItem('os_gemini_key');
@@ -49,32 +99,16 @@ document.getElementById('analyzeBtn').addEventListener('click', async () => {
   ]`;
 
   try {
-    // Active production model endpoint
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-    });
+    // Call the dynamic fallback runner
+    const { data, modelUsed } = await callGeminiWithFallback(apiKey, prompt);
 
-    const data = await res.json();
-
-    // 1. Verify HTTP / JSON API errors
-    if (!res.ok || data.error) {
-      throw new Error(data.error?.message || `HTTP ${res.status} Error`);
-    }
-
-    // 2. Verify response candidate structure exists
-    if (!data.candidates || data.candidates.length === 0 || !data.candidates[0].content) {
-      throw new Error("Gemini returned an empty response or flagged the prompt content.");
-    }
-
-    // 3. Extract and parse clean JSON
+    // Extract and parse clean JSON
     const rawText = data.candidates[0].content.parts[0].text;
     const cleanJson = rawText.replace(/```json|```/g, '').trim();
     const clips = JSON.parse(cleanJson);
 
     renderClipPreviews(videoId, clips);
-    status.textContent = `Found ${clips.length} highlight clips!`;
+    status.textContent = `Found ${clips.length} highlight clips using ${modelUsed}!`;
 
   } catch (err) {
     console.error("Gemini API Error:", err);
