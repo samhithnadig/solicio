@@ -63,9 +63,9 @@ Because `FFmpeg.wasm` relies on `SharedArrayBuffer`, your local web server must 
 ### Prerequisites
 * Node.js (v18 or higher) installed on your machine.
 
-##🤝 Contributing
+## 🤝 Contributing
 Contributions make the open-source community an amazing place to learn, inspire, and create. Any contributions you make are greatly appreciated.
-Fork the Project
+Fork the Project  
 
 Create your Feature Branch (git checkout -b feature/AmazingFeature)
 
@@ -75,6 +75,5 @@ Push to the Branch (git push origin feature/AmazingFeature)
 
 Open a Pull Request
 
-##📜 License
+## 📜 License
 Distributed under the MIT License. See LICENSE for details.
-
