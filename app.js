@@ -1,29 +1,26 @@
 // ==========================================
-//           SOLICIO APP LOGIC
+//          SOLICIO AI - CLIENT ENGINE
 // ==========================================
 
-// --- Local Storage API Key Management ---
+// --- API Key Management ---
 const apiKeyInput = document.getElementById('apiKeyInput');
 const saveKeyBtn = document.getElementById('saveKeyBtn');
 const keyStatus = document.getElementById('keyStatus');
 
-apiKeyInput.value = localStorage.getItem('solicio_gemini_key') || localStorage.getItem('os_gemini_key') || '';
+apiKeyInput.value = localStorage.getItem('solicio_gemini_key') || '';
 
 saveKeyBtn.addEventListener('click', () => {
   localStorage.setItem('solicio_gemini_key', apiKeyInput.value.trim());
-  keyStatus.textContent = '✓ Key Saved locally!';
-  setTimeout(() => {
-    keyStatus.textContent = 'Stored in browser localStorage';
-  }, 2000);
+  keyStatus.textContent = '✓ Saved!';
+  setTimeout(() => { keyStatus.textContent = 'Stored in browser localStorage'; }, 2000);
 });
 
-// --- Extract YouTube Video ID ---
 function getYouTubeId(url) {
   const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/);
   return match ? match[1] : null;
 }
 
-// --- Dynamic Model Cascade Runner for Solicio ---
+// --- Gemini Fallback API Engine ---
 async function callGeminiWithFallback(apiKey, prompt) {
   const models = [
     'gemini-2.5-flash',
@@ -33,11 +30,11 @@ async function callGeminiWithFallback(apiKey, prompt) {
     'gemini-2.5-flash-lite'
   ];
 
-  let lastErrorMessage = '';
+  let lastError = '';
 
   for (const model of models) {
     try {
-      console.log(`[Solicio] Trying API model: ${model}...`);
+      console.log(`[Solicio] Attempting model: ${model}...`);
       const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -45,157 +42,150 @@ async function callGeminiWithFallback(apiKey, prompt) {
       });
 
       const data = await res.json();
-
       if (!res.ok || data.error) {
-        lastErrorMessage = data.error?.message || `HTTP ${res.status}`;
-        console.warn(`[Solicio] ${model} warning: ${lastErrorMessage}. Trying fallback...`);
+        lastError = data.error?.message || `HTTP ${res.status}`;
         continue;
       }
 
-      if (!data.candidates || data.candidates.length === 0 || !data.candidates[0].content) {
-        lastErrorMessage = `${model} returned empty response.`;
-        console.warn(`[Solicio] ${lastErrorMessage}. Trying fallback...`);
-        continue;
+      if (data.candidates && data.candidates[0]?.content) {
+        return { data, modelUsed: model };
       }
-
-      console.log(`[Solicio] Successfully retrieved clips with model: ${model}`);
-      return { data, modelUsed: model };
-
     } catch (err) {
-      lastErrorMessage = err.message;
-      console.warn(`[Solicio] Fetch error on ${model}:`, err);
+      lastError = err.message;
     }
   }
 
-  throw new Error(`All Gemini API endpoints failed. Detail: ${lastErrorMessage}`);
+  throw new Error(`All Gemini endpoints failed: ${lastError}`);
 }
 
-// --- Solicio AI Highlight Analyzer ---
+// --- Analyze Button Event ---
 document.getElementById('analyzeBtn').addEventListener('click', async () => {
-  const apiKey = localStorage.getItem('solicio_gemini_key') || localStorage.getItem('os_gemini_key');
+  const apiKey = localStorage.getItem('solicio_gemini_key');
   const url = document.getElementById('ytUrlInput').value.trim();
   const status = document.getElementById('statusText');
 
-  if (!apiKey) {
-    alert("Please save your Gemini API Key in the sidebar first.");
-    return;
-  }
-
+  if (!apiKey) return alert("Please save your Gemini API Key in the sidebar.");
   const videoId = getYouTubeId(url);
-  if (!videoId) {
-    alert("Please enter a valid YouTube URL.");
-    return;
-  }
+  if (!videoId) return alert("Please enter a valid YouTube URL.");
 
   status.style.color = "var(--teal)";
-  status.textContent = "Analyzing video highlights with Solicio AI...";
+  status.textContent = "Solicio AI is extracting viral moments...";
 
-  const prompt = `Analyze this video context for YouTube ID "${videoId}".
-  Identify 3 viral 30-second highlight segments. 
-  Respond ONLY with a valid JSON array matching this exact schema:
+  const prompt = `Analyze video context for YouTube ID "${videoId}".
+  Find 3 viral 30-second clips. 
+  Respond strictly with JSON array:
   [
-    { "title": "Hook Title", "start": 15, "end": 45, "reason": "Why this moment is viral" }
+    { "title": "Hook Title", "start": 15, "end": 45, "reason": "Why it goes viral" }
   ]`;
 
   try {
     const { data, modelUsed } = await callGeminiWithFallback(apiKey, prompt);
-
     const rawText = data.candidates[0].content.parts[0].text;
     const cleanJson = rawText.replace(/```json|```/g, '').trim();
     const clips = JSON.parse(cleanJson);
 
-    renderClipPreviews(videoId, clips);
-    status.textContent = `Found ${clips.length} highlight clips using ${modelUsed}!`;
-
+    renderClipCards(videoId, clips);
+    status.textContent = `Generated ${clips.length} clip segments using ${modelUsed}!`;
   } catch (err) {
-    console.error("[Solicio] Error:", err);
     status.style.color = "var(--red)";
     status.textContent = `Error: ${err.message}`;
   }
 });
 
-// Render 9:16 Vertical Cropped Preview Cards
-function renderClipPreviews(videoId, clips) {
+// --- Render Zero-Crust Pre-cut Clip Cards ---
+function renderClipCards(videoId, clips) {
   const grid = document.getElementById('clipsGrid');
   grid.innerHTML = '';
 
-  clips.forEach((clip) => {
+  clips.forEach((clip, idx) => {
     const card = document.createElement('div');
     card.className = 'clip-card';
+    card.id = `card-${idx}`;
     card.innerHTML = `
-      <div class="iframe-container">
-        <iframe src="https://www.youtube-nocookie.com/embed/${videoId}?start=${clip.start}&end=${clip.end}&autoplay=0" allowfullscreen></iframe>
+      <div class="video-preview-container" id="preview-box-${idx}">
+        <iframe src="https://www.youtube-nocookie.com/embed/${videoId}?start=${clip.start}&end=${clip.end}&autoplay=0" 
+                style="width:100%; height:100%; border:none;"></iframe>
       </div>
-      <h4 style="margin: 12px 0 4px 0; font-size: 15px; font-weight: 600;">${clip.title}</h4>
+      <h4 style="margin: 8px 0; text-align: center;">${clip.title}</h4>
       <p class="hint">${clip.start}s - ${clip.end}s</p>
-      <p class="hint" style="margin-top: 4px;">${clip.reason}</p>
-      <button class="btn-secondary" onclick="setCropRange(${clip.start}, ${clip.end})" style="margin-top: 10px; width: 100%;">Select for Local Crop</button>
+      <p class="hint" style="text-align: center; margin-bottom: 12px;">${clip.reason}</p>
+      <button class="btn-primary" onclick="autoGenerateCutClip('${videoId}', ${clip.start}, ${clip.end}, ${idx})" id="gen-btn-${idx}">
+        ✂️ Generate Ready Cut Clip
+      </button>
     `;
     grid.appendChild(card);
   });
 }
 
-function setCropRange(start, end) {
-  document.getElementById('cropStart').value = start;
-  document.getElementById('cropEnd').value = end;
-  window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+// --- Browser Recording Capture Engine ---
+let ytPlayer = null;
+
+function onYouTubeIframeAPIReady() {
+  ytPlayer = new YT.Player('ytPlayer', {
+    height: '360',
+    width: '640',
+    playerVars: { 'autoplay': 0, 'controls': 0 }
+  });
 }
 
-// --- Local FFmpeg.wasm Engine for Solicio ---
-const { FFmpeg } = FFmpegWASM;
-const { fetchFile, toBlobURL } = FFmpegUtil;
-let ffmpeg = null;
+async function autoGenerateCutClip(videoId, start, end, idx) {
+  const genBtn = document.getElementById(`gen-btn-${idx}`);
+  const previewBox = document.getElementById(`preview-box-${idx}`);
+  
+  genBtn.disabled = true;
+  genBtn.textContent = "Processing 9:16 Cut Clip...";
 
-document.getElementById('renderBtn').addEventListener('click', async () => {
-  const fileInput = document.getElementById('localFileInput').files[0];
-  const start = document.getElementById('cropStart').value;
-  const end = document.getElementById('cropEnd').value;
-  const renderBtn = document.getElementById('renderBtn');
+  const durationSec = end - start;
+  
+  // Load video into hidden capture player
+  ytPlayer.loadVideoById({
+    videoId: videoId,
+    startSeconds: start,
+    endSeconds: end
+  });
 
-  if (!fileInput) {
-    alert("Please choose a local MP4 file to crop.");
-    return;
-  }
+  const canvas = document.getElementById('cropCanvas');
+  const ctx = canvas.getContext('2d');
+  
+  // Capture canvas media stream
+  const stream = canvas.captureStream(30);
+  const mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
+  const chunks = [];
 
-  renderBtn.disabled = true;
-  renderBtn.textContent = "Loading Solicio Engine...";
+  mediaRecorder.ondataavailable = (e) => chunks.push(e.data);
 
-  try {
-    if (!ffmpeg) {
-      ffmpeg = new FFmpeg();
-      const baseURL = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd';
-      await ffmpeg.load({
-        coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript'),
-        wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm'),
-      });
-    }
+  mediaRecorder.onstop = () => {
+    const blob = new Blob(chunks, { type: 'video/webm' });
+    const videoUrl = URL.createObjectURL(blob);
 
-    renderBtn.textContent = "Cropping 9:16 Video in Browser...";
-    await ffmpeg.writeFile('input.mp4', await fetchFile(fileInput));
+    // Serve crust-free pre-cut vertical clip directly!
+    previewBox.innerHTML = `
+      <video src="${videoUrl}" controls autoplay loop></video>
+    `;
 
-    const duration = end - start;
-    await ffmpeg.exec([
-      '-ss', start.toString(),
-      '-i', 'input.mp4',
-      '-t', duration.toString(),
-      '-vf', 'crop=ih*(9/16):ih',
-      '-c:v', 'libx264',
-      '-preset', 'ultrafast',
-      'output.mp4'
-    ]);
+    genBtn.disabled = false;
+    genBtn.textContent = "Download Cut Clip (.webm / .mp4)";
+    genBtn.onclick = () => {
+      const a = document.createElement('a');
+      a.href = videoUrl;
+      a.download = `solicio-clip-${start}s-${end}s.webm`;
+      a.click();
+    };
+  };
 
-    const data = await ffmpeg.readFile('output.mp4');
-    const blob = new Blob([data.buffer], { type: 'video/mp4' });
-    const url = URL.createObjectURL(blob);
+  // Render loop to crop 16:9 frame into 9:16 vertical canvas
+  let renderInterval = setInterval(() => {
+    const iframe = ytPlayer.getIframe();
+    // Crop center 9:16 slice onto canvas
+    ctx.drawImage(iframe, 160, 0, 320, 360, 0, 0, 720, 1280);
+  }, 1000 / 30);
 
-    document.getElementById('renderedVideo').src = url;
-    document.getElementById('downloadLink').href = url;
-    document.getElementById('renderOutput').style.display = 'block';
+  mediaRecorder.start();
 
-  } catch (e) {
-    alert("Render error: " + e.message);
-  } finally {
-    renderBtn.disabled = false;
-    renderBtn.textContent = "Render Vertical Clip";
-  }
-});
+  // Stop recording automatically when the clip ends
+  setTimeout(() => {
+    clearInterval(renderInterval);
+    ytPlayer.stopVideo();
+    mediaRecorder.stop();
+  }, durationSec * 1000);
+}
