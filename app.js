@@ -189,25 +189,26 @@ async function autoGenerateCutClip(videoId, start, end, idx) {
     mediaRecorder.stop();
   }, durationSec * 1000);
 }
-// Function to fetch AI viral highlights using Gemini (Forced Section Sampling)
+// Function to fetch AI viral highlights using Gemini (Updated Model + Section Partitioning)
 async function fetchGeminiViralHighlights(transcriptArray, videoDuration) {
-  // Retrieve key from input or local storage for BYOK setup
+  // Retrieve user's key from input or local storage (BYOK Architecture)
   const userApiKey = localStorage.getItem("user_gemini_key") || prompt("Enter your Gemini API Key:");
   if (!userApiKey) return null;
 
+  // Updated Gemini API Endpoint
   const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${userApiKey}`;
 
-  // 1. Calculate video sections to force coverage across the whole timeline
+  // 1. Calculate time markers to divide the video into 3 distinct sections
   const totalSeconds = videoDuration || (transcriptArray.length ? transcriptArray[transcriptArray.length - 1].start : 1800);
   const midPoint = Math.floor(totalSeconds / 2);
   const finalThird = Math.floor(totalSeconds * 0.66);
 
-  // 2. Format the full transcript with explicit timestamps
+  // 2. Format the full transcript with explicit timestamp tags
   const formattedTranscript = transcriptArray
     .map((item) => `[${Math.floor(item.start)}s]: ${item.text}`)
     .join("\n");
 
-  // 3. System instructions forcing 1 clip per section
+  // 3. System prompt enforcing strict timeline section boundaries
   const systemPrompt = `You are an elite short-form video editor for TikTok, YouTube Shorts, and Reels.
 You are given a timestamped transcript for a video with a total duration of ${totalSeconds} seconds.
 
@@ -218,9 +219,9 @@ You MUST output EXACTLY 3 viral clips (30–60s each). To guarantee full video c
 - CLIP 2 (Middle/Later): Pick a highlight from timestamps between ${midPoint}s and ${finalThird}s.
 - CLIP 3 (End/Climax): Pick a highlight from timestamps between ${finalThird}s and ${totalSeconds}s.
 
-STRICT RULE: Do NOT put all 3 clips in the first 5 minutes. If you pick all clips from under 600s, the response is INVALID.
+STRICT RULE: Do NOT put all 3 clips in the first 5 minutes. If all clips are under 600s for a long video, the selection is INVALID.
 
-Return ONLY a raw JSON array of 3 objects with no markdown code blocks.
+Return ONLY a raw JSON array of 3 objects with no markdown formatting.
 JSON Format:
 [
   {
@@ -247,7 +248,7 @@ JSON Format:
         ],
         generationConfig: {
           responseMimeType: "application/json",
-          temperature: 0.2, // Lower temperature forces strict rule-following
+          temperature: 0.2, // Low temperature forces strict rule compliance
           maxOutputTokens: 2048
         }
       })
