@@ -211,16 +211,15 @@ async function fetchGeminiViralHighlights(transcriptArray, videoDuration) {
   // 3. System prompt enforcing strict timeline section boundaries
   const systemPrompt = `You are an elite short-form video editor for TikTok, YouTube Shorts, and Reels.
 You are given a timestamped transcript for a video with a total duration of ${totalSeconds} seconds.
-
+YOUR STRICT RULE:please see to that you have seen the whole transcript it may have been observed that you just put the initial clips n video which might seem that the tool may not be working also after choosing can you also tell why this clip was noticed by you and made you think that  it was essential to the users to use it and please reply it in the /"why_it_will_go_viral"
 YOUR MANDATE:
-You MUST output EXACTLY 3 viral clips (30–60s each). To guarantee full video coverage, you MUST select clips according to these strict rules:
+You MUST output EXACTLY 3 viral clips (somewhat near 60s each). To guarantee full video coverage, you MUST select clips according to these strict rules:
 
 - CLIP 1 (Beginning): Pick a highlight from timestamps between 0s and ${midPoint}s.
 - CLIP 2 (Middle/Later): Pick a highlight from timestamps between ${midPoint}s and ${finalThird}s.
 - CLIP 3 (End/Climax): Pick a highlight from timestamps between ${finalThird}s and ${totalSeconds}s.
 
-STRICT RULE: Do NOT put all 3 clips in the first 5 minutes. If all clips are under 600s for a long video, the selection is INVALID.
-
+STRICT RULE: please dont reply with very bad sentnces for catchy line see to that the title is actually related to the shortclip
 Return ONLY a raw JSON array of 3 objects with no markdown formatting.
 JSON Format:
 [
