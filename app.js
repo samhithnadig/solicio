@@ -10,7 +10,6 @@ const apiKeyInput = document.getElementById('apiKeyInput');
 const saveKeyBtn = document.getElementById('saveKeyBtn');
 const keyStatus = document.getElementById('keyStatus');
 
-// Load stored key on boot
 if (apiKeyInput) {
   apiKeyInput.value = localStorage.getItem('solicio_gemini_key') || '';
 }
@@ -35,6 +34,7 @@ if (saveKeyBtn) {
 }
 
 function getYouTubeId(url) {
+  if (!url) return null;
   const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/);
   return match ? match[1] : null;
 }
@@ -59,7 +59,7 @@ function onYouTubeIframeAPIReady() {
 function loadVideoIntoPlayer(videoId) {
   const placeholder = document.getElementById('playerPlaceholder');
   if (placeholder) {
-    placeholder.style.display = 'none'; // Force hide overlay frame
+    placeholder.style.display = 'none';
   }
 
   if (player && player.loadVideoById) {
@@ -95,11 +95,10 @@ function onPlayerStateChange(event) {
 async function callGemini(apiKey, systemPrompt, userContent) {
   const sanitizedKey = apiKey.trim();
 
-  // Updated model strings to active supported models
+  // Updated model strings to supported active models
   const models = [
     'gemini-2.5-flash',
-    'gemini-2.0-flash',
-    'gemini-flash-latest'
+    'gemini-2.0-flash'
   ];
 
   const attemptedErrors = [];
@@ -141,7 +140,6 @@ async function callGemini(apiKey, systemPrompt, userContent) {
     }
   }
 
-  // Show primary error first if all fail
   throw new Error(attemptedErrors.join(' | '));
 }
 
