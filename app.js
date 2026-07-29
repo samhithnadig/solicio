@@ -95,13 +95,14 @@ function onPlayerStateChange(event) {
 async function callGemini(apiKey, systemPrompt, userContent) {
   const sanitizedKey = apiKey.trim();
 
+  // Updated model strings to active supported models
   const models = [
     'gemini-2.5-flash',
     'gemini-2.0-flash',
-    'gemini-1.5-flash'
+    'gemini-flash-latest'
   ];
 
-  let lastErr = '';
+  const attemptedErrors = [];
 
   for (const model of models) {
     try {
@@ -127,7 +128,8 @@ async function callGemini(apiKey, systemPrompt, userContent) {
 
       const data = await res.json();
       if (!res.ok || data.error) {
-        lastErr = data.error?.message || `HTTP ${res.status}`;
+        const errMsg = data.error?.message || `HTTP ${res.status}`;
+        attemptedErrors.push(`[${model}]: ${errMsg}`);
         continue;
       }
 
@@ -135,11 +137,12 @@ async function callGemini(apiKey, systemPrompt, userContent) {
         return { data, modelUsed: model };
       }
     } catch (err) {
-      lastErr = err.message;
+      attemptedErrors.push(`[${model}]: ${err.message}`);
     }
   }
 
-  throw new Error(`Gemini requests failed: ${lastErr}`);
+  // Show primary error first if all fail
+  throw new Error(attemptedErrors.join(' | '));
 }
 
 // --- 4. Video Analysis Execution ---
