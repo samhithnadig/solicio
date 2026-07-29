@@ -93,28 +93,7 @@ document.getElementById('analyzeBtn').addEventListener('click', async () => {
 });
 
 // --- Render Zero-Crust Pre-cut Clip Cards ---
-function renderClipCards(videoId, clips) {
-  const grid = document.getElementById('clipsGrid');
-  grid.innerHTML = '';
 
-  clips.forEach((clip, idx) => {
-    const card = document.createElement('div');
-    card.className = 'clip-card';
-    card.id = `card-${idx}`;
-    card.innerHTML = `
-      <div class="video-preview-container" id="preview-box-${idx}">
-        <iframe src="https://www.youtube-nocookie.com/embed/${videoId}?start=${clip.start}&end=${clip.end}&autoplay=0" 
-                style="width:100%; height:100%; border:none;"></iframe>
-      </div>
-      <h4 style="margin: 8px 0; text-align: center;">${clip.title}</h4>
-      <p class="hint">${clip.start}s - ${clip.end}s</p>
-      <p class="hint" style="text-align: center; margin-bottom: 12px;">${clip.reason}</p>
-      <button class="btn-primary" onclick="autoGenerateCutClip('${videoId}', ${clip.start}, ${clip.end}, ${idx})" id="gen-btn-${idx}">
-        ✂️ Generate Ready Cut Clip
-      </button>
-    `;
-    grid.appendChild(card);
-  });
 }
 
 // --- Browser Recording Capture Engine ---
