@@ -110,7 +110,7 @@ function renderClipCards(videoId, clips) {
       <p class="hint">${clip.start}s - ${clip.end}s</p>
       <p class="hint" style="text-align: center; margin-bottom: 12px;">${clip.reason}</p>
       <button class="btn-primary" onclick="autoGenerateCutClip('${videoId}', ${clip.start}, ${clip.end}, ${idx})" id="gen-btn-${idx}">
-        ✂️ Generate Ready Cut Clip
+         Generate Ready Cut Clip
       </button>
     `;
     grid.appendChild(card);
