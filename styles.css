@@ -1,55 +1,202 @@
-/* Dark Dashboard Theme - Drop-in non-breaking CSS */
-:root {
-  --bg-dark: #0b0f17;
-  --bg-card: #131924;
-  --bg-input: #0a0d14;
-  --border: #232d3f;
-  --text-primary: #f3f4f6;
-  --text-muted: #9ca3af;
-  --accent-blue: #2563eb;
-  --accent-green: #10b981;
+/* --- Solicio UI Reset & Fix --- */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }
 
 body {
-  background-color: var(--bg-dark) !important;
-  color: var(--text-primary) !important;
+  background-color: #0b0f17 !important;
+  color: #f3f4f6 !important;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
-  margin: 0;
-  padding: 20px;
+  padding: 0 !important;
+  margin: 0 !important;
+  line-height: 1.5;
 }
 
-/* Card Containers */
-.card, container, section, div[class*="box"], div[class*="card"] {
-  background-color: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 6px;
+/* --- Top Navigation --- */
+.top-nav {
+  background-color: #131924;
+  border-bottom: 1px solid #232d3f;
+  padding: 16px 24px;
 }
 
-/* Buttons */
-button, input[type="submit"] {
-  background-color: var(--accent-blue) !important;
+.nav-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+
+.brand-tag {
+  font-size: 0.75rem;
+  background: rgba(37, 99, 235, 0.2);
+  color: #60a5fa;
+  padding: 2px 8px;
+  border-radius: 4px;
+  border: 1px solid rgba(37, 99, 235, 0.4);
+}
+
+.status-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  color: #10b981;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #10b981;
+}
+
+/* --- Main Layout Grid --- */
+.dashboard-layout {
+  display: grid !important;
+  grid-template-columns: 380px 1fr !important;
+  gap: 24px !important;
+  max-width: 1400px;
+  margin: 24px auto !important;
+  padding: 0 24px;
+}
+
+/* --- Panel Cards --- */
+.panel-card {
+  background-color: #131924 !important;
+  border: 1px solid #232d3f !important;
+  border-radius: 8px !important;
+  padding: 20px !important;
+  margin-bottom: 24px;
+}
+
+.panel-header h3 {
+  font-size: 0.95rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #ffffff;
+  margin-bottom: 4px;
+}
+
+.panel-subtitle {
+  font-size: 0.8rem;
+  color: #9ca3af;
+  margin-bottom: 16px;
+}
+
+/* --- Form Layout Controls --- */
+.panel-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+}
+
+.form-group label {
+  font-size: 0.825rem;
+  color: #9ca3af;
+  font-weight: 500;
+}
+
+.form-group input {
+  background-color: #0a0d14 !important;
+  border: 1px solid #232d3f !important;
+  border-radius: 6px !important;
+  padding: 10px 12px !important;
+  color: #ffffff !important;
+  font-size: 0.875rem !important;
+  width: 100% !important;
+  display: block !important;
+}
+
+.form-group input:focus {
+  border-color: #2563eb !important;
+  outline: none;
+}
+
+.field-help {
+  font-size: 0.75rem;
+  color: #6b7280;
+  margin-top: 4px;
+  display: block;
+}
+
+.btn-primary {
+  background-color: #2563eb !important;
   color: #ffffff !important;
   border: none !important;
-  border-radius: 4px !important;
-  padding: 10px 16px !important;
-  font-weight: 500 !important;
+  border-radius: 6px !important;
+  padding: 12px !important;
+  font-weight: 600 !important;
+  font-size: 0.875rem !important;
   cursor: pointer !important;
+  width: 100%;
+  margin-top: 8px;
 }
 
-button:hover {
-  opacity: 0.9;
+.btn-primary:hover {
+  background-color: #1d4ed8 !important;
 }
 
-/* Form Inputs */
-input[type="text"], input[type="password"], textarea {
-  background-color: var(--bg-input) !important;
-  border: 1px solid var(--border) !important;
-  color: var(--text-primary) !important;
-  border-radius: 4px !important;
-  padding: 10px 12px !important;
+/* --- Terminal Console Output --- */
+.console-box {
+  background-color: #0a0d14 !important;
+  border: 1px solid #232d3f !important;
+  border-radius: 6px !important;
+  padding: 12px !important;
+  font-family: monospace !important;
+  font-size: 0.8rem !important;
+  color: #9ca3af !important;
+  min-height: 100px;
 }
 
-/* Hide or strip emojis via typography */
-body * {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+/* --- Workspace / Player Framing --- */
+.video-container-frame {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background-color: #0a0d14;
+  border: 1px solid #232d3f;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 12px;
+}
+
+.placeholder-text {
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+.empty-grid-notice {
+  padding: 24px;
+  text-align: center;
+  color: #6b7280;
+  font-size: 0.875rem;
+  border: 1px dashed #232d3f;
+  border-radius: 6px;
+  margin-top: 12px;
+}
+
+/* Mobile responsiveness fallbacks */
+@media (max-width: 900px) {
+  .dashboard-layout {
+    grid-template-columns: 1fr !important;
+  }
 }
