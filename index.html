@@ -157,8 +157,9 @@
       <div class="step-title">Paste the transcript</div>
     </div>
     <div class="step-body">
+      <p class="hint" id="transcriptModeNote" style="margin-top:0;margin-bottom:12px;color:var(--teal);display:none;">Not needed for YouTube link mode — Gemini watches the video directly. Skip to Step 4.</p>
       <textarea id="transcriptInput" placeholder="[0:00] Welcome back to the channel...&#10;[0:15] Today I want to talk about...&#10;[1:32] This is the part that changed everything for me..."></textarea>
-      <p class="hint">On YouTube: click "...more" under the video → "Show transcript" → copy all the text (with timestamps) and paste here. Timestamps in [m:ss] or (m:ss) format work best, but plain text works too.</p>
+      <p class="hint">Only needed in Upload file mode (a local file can't be watched by Gemini directly, only a public YouTube URL can). On YouTube: click "...more" under the video → "Show transcript" → copy all the text (with timestamps) and paste here.</p>
     </div>
   </div>
 
@@ -228,6 +229,7 @@ document.querySelectorAll('.mode-tab').forEach(tab => {
     sourceMode = tab.dataset.mode;
     document.getElementById('panel-upload-mode').classList.toggle('active', sourceMode === 'upload');
     document.getElementById('panel-youtube-mode').classList.toggle('active', sourceMode === 'youtube');
+    document.getElementById('transcriptModeNote').style.display = sourceMode === 'youtube' ? 'block' : 'none';
   });
 });
 
@@ -235,6 +237,7 @@ document.querySelectorAll('.mode-tab').forEach(tab => {
 let ytPlayer = null;
 let ytApiReady = false;
 let ytBoundaryInterval = null;
+let currentYoutubeUrl = null;
 
 function loadYoutubeApiScript(){
   return new Promise(resolve => {
@@ -255,6 +258,7 @@ document.getElementById('loadYoutubeBtn').addEventListener('click', async () => 
   const url = document.getElementById('youtubeUrlInput').value.trim();
   const videoId = extractYoutubeId(url);
   if (!videoId){ alert('Could not find a valid YouTube video ID in that URL.'); return; }
+  currentYoutubeUrl = `https://www.youtube.com/watch?v=${videoId}`;
 
   await loadYoutubeApiScript();
   document.getElementById('youtubePlayerWrap').style.display = 'block';
@@ -312,28 +316,38 @@ findBtn.addEventListener('click', async () => {
 
   if (!key){ showFindError('Add and save your Gemini API key in Step 1 first.'); return; }
   if (sourceMode === 'upload' && !fileInput.files[0]){ showFindError('Upload a video in Step 2 first.'); return; }
-  if (sourceMode === 'youtube' && !ytPlayer){ showFindError('Load a YouTube video in Step 2 first.'); return; }
-  if (!transcript){ showFindError('Paste a transcript in Step 3 first.'); return; }
+  if (sourceMode === 'youtube' && !currentYoutubeUrl){ showFindError('Load a YouTube video in Step 2 first.'); return; }
+  if (sourceMode === 'upload' && !transcript){ showFindError('Paste a transcript in Step 3 first (needed for uploaded files -- Gemini can\'t watch a local file directly from the browser).'); return; }
 
   findBtn.disabled = true;
-  findBtn.textContent = 'Thinking…';
+  findBtn.textContent = sourceMode === 'youtube' ? 'Watching video…' : 'Thinking…';
 
-  const prompt = `You are selecting the best short-form clips from a video transcript for social media (Reels/Shorts/TikTok). The video is approximately ${Math.round(videoDuration || 300)} seconds long.
+  const durationForPrompt = Math.round(videoDuration || 300);
+  const instructions = `You are selecting the best short-form clips from a video for social media (Reels/Shorts/TikTok). The video is approximately ${durationForPrompt} seconds long.
 
 Pick up to ${maxClips} non-overlapping segments, each roughly 15-60 seconds, that would work best as standalone clips -- hooks, punchlines, strong opinions, emotional peaks, or self-contained stories.
 
-Transcript (may include timestamps like [m:ss] or (m:ss); if timestamps are missing, estimate reasonable positions based on the text order and total duration):
-${transcript}
-
 Respond ONLY with a JSON array, no markdown fences, no other text, in this exact format:
 [{"start": 12.4, "end": 45.0, "title": "short catchy title", "reason": "why this works as a clip"}]
-All start/end values must be numbers in seconds, within 0 and ${Math.round(videoDuration || 300)}.`;
+All start/end values must be numbers in seconds, within 0 and ${durationForPrompt}.`;
+
+  // Two request shapes: YouTube mode sends the URL directly (Gemini watches/listens to the
+  // actual video). Upload mode sends the pasted transcript as text, since a local file can't
+  // be handed to Gemini as a URL -- it never left the browser.
+  const parts = sourceMode === 'youtube'
+    ? [
+        { text: instructions },
+        { file_data: { file_uri: currentYoutubeUrl } }
+      ]
+    : [
+        { text: `${instructions}\n\nTranscript (may include timestamps like [m:ss] or (m:ss); if timestamps are missing, estimate reasonable positions based on text order and total duration):\n${transcript}` }
+      ];
 
   try{
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${encodeURIComponent(key)}`, {
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(key)}`, {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+      body: JSON.stringify({ contents: [{ parts }] })
     });
     if (!res.ok){
       const errBody = await res.text();
