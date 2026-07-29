@@ -1,57 +1,107 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Solicio AI - Zero-Backend Shorts Generator</title>
-  <link rel="stylesheet" href="styles.css" />
-  <!-- YouTube Iframe API -->
-  <script src="https://www.youtube.com/iframe_api"></script>
-  
-  
-
-
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Solicio AI — Video Repurposing Studio</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 </head>
-<body>
+<body class="dashboard-body">
 
-  <div class="sidebar">
-    <h2>Solicio AI</h2>
-    <p class="hint">Instant Short-Form Clip Generator</p>
-    <hr />
-    <label for="apiKeyInput">Gemini API Key:</label>
-    <input type="password" id="apiKeyInput" placeholder="AIzaSy..." />
-    <button id="saveKeyBtn">Save API Key</button>
-    <p id="keyStatus" class="hint">Stored locally in browser. If you dont have one get one for free from <a href="https://aistudio.google.com/api-keys">Here</a>.Click on the create api key button and select the default gemini project to get your key</p>
-  </div>
-
-  <div class="main-content">
-    <h1>Solicio Clip Engine</h1>
-    <p>Paste a YouTube URL to automatically detect viral highlights and generate pre-cut 9:16 vertical shorts.</p>
-
-    <div class="input-group">
-      <input type="text" id="ytUrlInput" placeholder="https://www.youtube.com/watch?v=..." />
-      <button id="analyzeBtn" class="btn-primary">Analyze Video</button>
+  <!-- Top Navigation Bar -->
+  <header class="top-nav">
+    <div class="nav-container">
+      <div class="brand">
+        <span class="brand-title">Solicio AI</span>
+        <span class="brand-tag">v1.0 • Client-Side</span>
+      </div>
+      <div class="nav-actions">
+        <div class="status-indicator">
+          <span class="status-dot"></span>
+          <span class="status-text">Engine Ready</span>
+        </div>
+      </div>
     </div>
+  </header>
 
-    <p id="statusText" class="status-msg"></p>
+  <!-- Main Dashboard Layout -->
+  <main class="dashboard-layout">
+    
+    <!-- Left Sidebar: Configuration Panel -->
+    <aside class="dashboard-sidebar">
+      <div class="panel-card">
+        <div class="panel-header">
+          <h3>Source Settings</h3>
+          <p class="panel-subtitle">Configure input and processing parameters</p>
+        </div>
 
-    <!-- Pre-cut Clip Cards rendered here -->
-    <div id="clipsGrid" class="clips-grid"></div>
+        <form id="process-form" class="panel-form">
+          <div class="form-group">
+            <label for="youtube-url">YouTube URL or Video ID</label>
+            <input type="text" id="youtube-url" placeholder="https://www.youtube.com/watch?v=..." required />
+          </div>
 
-    <!-- Hidden processing container for real-time canvas capture -->
-    <div id="hiddenCaptureContainer" style="display: none;">
-      <div id="ytPlayer"></div>
-      <canvas id="cropCanvas" width="720" height="1280"></canvas>
-    </div>
-  </div>
-  <!-- EthicalAds Placement Container -->
-<div 
-  data-ea-publisher="" 
-  data-ea-type="image" 
-  class="horizontal dark">
-</div>
+          <div class="form-group">
+            <label for="api-key">Gemini API Key</label>
+            <input type="password" id="api-key" placeholder="AIzaSy..." />
+            <small class="field-help">Processed strictly on-device via BYOK model.</small>
+          </div>
+
+          <button type="submit" id="submit-btn" class="btn-primary">
+            <span>Analyze & Split Video</span>
+          </button>
+        </form>
+      </div>
+
+      <!-- Execution Log Panel -->
+      <div class="panel-card log-card">
+        <div class="panel-header">
+          <h3>Terminal & Logs</h3>
+        </div>
+        <div id="console-output" class="console-box">
+          <p class="log-line">[system]: Solicio engine initialized.</p>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Workspace Area -->
+    <section class="dashboard-main">
+      
+      <!-- Video Input / Preview Container -->
+      <div class="panel-card workspace-card">
+        <div class="panel-header">
+          <h3>Source Video Preview</h3>
+        </div>
+        <div class="video-container-frame">
+          <div id="video-placeholder" class="placeholder-state">
+            <span class="placeholder-text">No active video loaded</span>
+          </div>
+          <!-- Player dynamically mounts here -->
+          <div id="player"></div>
+        </div>
+      </div>
+
+      <!-- Viral Highlights Output -->
+      <div class="panel-card workspace-card">
+        <div class="panel-header">
+          <h3>Detected Highlights</h3>
+          <p class="panel-subtitle">Calculated timestamp intervals across video timeline</p>
+        </div>
+
+        <div id="clips-grid" class="clips-grid">
+          <!-- Empty State -->
+          <div class="empty-grid-notice">
+            <span>Submit a video URL above to extract key timeline segments.</span>
+          </div>
+        </div>
+      </div>
+
+    </section>
+  </main>
 
   <script src="app.js"></script>
-  <footer> Created by <a href="https://github.com/samhithnadig">Samhith Nadig</a> </footer>
 </body>
 </html>
