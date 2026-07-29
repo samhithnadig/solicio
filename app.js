@@ -95,10 +95,12 @@ function onPlayerStateChange(event) {
 async function callGemini(apiKey, systemPrompt, userContent) {
   const sanitizedKey = apiKey.trim();
 
-  // Updated model strings to supported active models
+  // Optimized model fallback cascade including high-quota Lite models
   const models = [
     'gemini-2.5-flash',
-    'gemini-2.0-flash'
+    'gemini-2.5-flash-lite',
+    'gemini-2.0-flash',
+    'gemini-2.0-flash-lite'
   ];
 
   const attemptedErrors = [];
