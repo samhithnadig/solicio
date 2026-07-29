@@ -1,58 +1,97 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Solicio AI - Turn Videos into Shorts</title>
-  <link rel="stylesheet" href="styles.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Solicio AI — Viral Highlights Extractor</title>
+  <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <div class="container">
-    <h1>Solicio AI</h1>
-    <p class="subtitle">Client-Side YouTube Clip Extractor</p>
 
-    <!-- Main Input Form -->
-    <form id="process-form">
-      <div class="form-group">
-        <label for="youtube-url">YouTube Video URL:</label>
-        <input 
-          type="text" 
-          id="youtube-url" 
-          placeholder="https://www.youtube.com/watch?v=..." 
-          required
-        >
+  <!-- Header Header -->
+  <header class="navbar">
+    <div class="logo-group">
+      <span class="brand-name">Solicio</span>
+      <span class="badge">v1.0</span>
+    </div>
+    <div class="privacy-tag">
+      <span class="pulse-dot"></span> On-Device Processing (BYOK)
+    </div>
+  </header>
+
+  <main class="app-layout">
+    <!-- Sidebar / Settings -->
+    <aside class="sidebar">
+      <div class="card">
+        <h3>API Configuration</h3>
+        <p class="card-sub">Your Gemini key remains encrypted in browser storage.</p>
+        
+        <div class="field-group">
+          <label for="apiKeyInput">Gemini API Key</label>
+          <input type="password" id="apiKeyInput" placeholder="AIzaSy..." />
+        </div>
+        
+        <button id="saveKeyBtn" class="btn btn-secondary">Save Key</button>
+        <span id="keyStatus" class="status-msg"></span>
       </div>
 
-      <div class="form-group">
-        <label for="api-key">Gemini API Key:</label>
-        <input 
-          type="password" 
-          id="api-key" 
-          placeholder="Enter your Gemini API key"
-        >
+      <div class="card">
+        <h3>How it Works</h3>
+        <p class="card-sub">
+          Solicio divides the entire video transcript into equal structural windows (Beginning, Middle, and End/Climax) to extract contextual highlights across the entire runtime.
+        </p>
+      </div>
+    </aside>
+
+    <!-- Main Content Workspace -->
+    <section class="workspace">
+      <!-- Input Control Section -->
+      <div class="card control-card">
+        <h2>Extract Highlights</h2>
+        <p class="card-sub">Paste a YouTube URL to find short-form clip segments.</p>
+        
+        <div class="input-row">
+          <input 
+            type="text" 
+            id="ytUrlInput" 
+            placeholder="https://www.youtube.com/watch?v=..." 
+          />
+          <button id="analyzeBtn" class="btn btn-primary">Analyze Timeline</button>
+        </div>
+        <p id="statusText" class="status-indicator"></p>
       </div>
 
-      <button type="submit" id="submit-btn">Analyze Video</button>
-    </form>
+      <!-- Main Video Preview Player -->
+      <div class="card player-card">
+        <div class="player-header">
+          <h3>Source Video Preview</h3>
+          <span id="playerTimeLabel" class="time-badge">00:00</span>
+        </div>
+        
+        <div class="video-wrapper">
+          <div id="ytPlayer"></div>
+          <div id="playerPlaceholder" class="placeholder-overlay">
+            <span>Enter a valid YouTube URL to load the player</span>
+          </div>
+        </div>
+      </div>
 
-    <!-- System Console Output -->
-    <div id="console-output" class="console-box">
-      <p>[system]: Ready.</p>
-    </div>
+      <!-- Highlights Output Grid -->
+      <div class="card results-card">
+        <h3>Detected Highlights</h3>
+        <p class="card-sub">Extracted viral moments segmented with timestamps.</p>
+        
+        <div id="clipsGrid" class="clips-grid">
+          <div class="empty-state">
+            <p>No active highlights generated yet. Click "Analyze Timeline" to get started.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
 
-    <!-- YouTube Video Mount Container -->
-    <div class="video-section">
-      <h3>Video Preview</h3>
-      <div id="player"></div>
-    </div>
-
-    <!-- Highlight Output Grid -->
-    <div class="results-section">
-      <h3>Detected Viral Clips</h3>
-      <div id="clips-grid" class="clips-container"></div>
-    </div>
-  </div>
-
+  <!-- YouTube IFrame API -->
+  <script src="https://www.youtube.com/iframe_api"></script>
   <script src="app.js"></script>
 </body>
 </html>
