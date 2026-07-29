@@ -1,97 +1,601 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Solicio AI — Viral Highlights Extractor</title>
-  <link rel="stylesheet" href="styles.css" />
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ClipPicker — AI Highlights, No Backend</title>
+<script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+<style>
+  :root{
+    --bg:#0d0f12; --panel:#15181c; --panel-raised:#1c2026; --border:#262b31;
+    --amber:#ff8a3d; --teal:#2dd4bf; --red:#e05a4d; --text:#f1efe9; --text-muted:#8a8f98;
+    --mono: 'SF Mono', 'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+  }
+  *{box-sizing:border-box;} html,body{margin:0;padding:0;}
+  body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;}
+  header{display:flex;align-items:center;justify-content:space-between;padding:22px 32px;border-bottom:1px solid var(--border);}
+  .logo{font-weight:900;font-size:20px;letter-spacing:0.05em;text-transform:uppercase;display:flex;align-items:center;gap:10px;}
+  .logo .dot{width:9px;height:9px;border-radius:50%;background:var(--amber);box-shadow:0 0 10px var(--amber);}
+  .tagline{color:var(--text-muted);font-size:12px;font-family:var(--mono);}
+  main{max-width:820px;margin:0 auto;padding:32px 24px 80px;}
+  .step{background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:26px;margin-bottom:20px;}
+  .step-header{display:flex;align-items:center;gap:12px;margin-bottom:16px;}
+  .step-num{
+    width:26px;height:26px;border-radius:50%;background:var(--panel-raised);border:1px solid var(--border);
+    display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:12px;color:var(--text-muted);flex-shrink:0;
+  }
+  .step-num.done{background:var(--teal);color:#062420;border-color:var(--teal);}
+  .step-title{font-size:15px;font-weight:700;}
+  .step-body{padding-left:38px;}
+  .hint{font-size:12px;color:var(--text-muted);line-height:1.5;margin-top:8px;}
+  label.field{display:block;margin-bottom:14px;}
+  label.field span{display:block;font-size:12px;color:var(--text-muted);margin-bottom:6px;}
+  input[type=text], input[type=password], textarea{
+    width:100%;background:var(--panel-raised);border:1px solid var(--border);border-radius:3px;
+    color:var(--text);padding:11px 13px;font-family:var(--mono);font-size:12.5px;
+  }
+  textarea{min-height:140px;resize:vertical;line-height:1.5;}
+  input:focus, textarea:focus{outline:none;border-color:var(--amber);}
+  input[type=file]{
+    width:100%;background:var(--panel-raised);border:1px dashed var(--border);border-radius:3px;
+    color:var(--text-muted);padding:20px 13px;font-size:13px;
+  }
+  button.primary{
+    background:var(--amber);color:#1a1305;border:none;border-radius:3px;padding:13px 22px;
+    font-size:13px;font-weight:700;cursor:pointer;
+  }
+  button.primary:hover{filter:brightness(1.08);}
+  button.primary:disabled{background:var(--panel-raised);color:var(--text-muted);cursor:not-allowed;}
+  button.ghost{
+    background:transparent;border:1px solid var(--border);color:var(--text);border-radius:3px;
+    padding:9px 16px;font-size:12.5px;cursor:pointer;
+  }
+  button.ghost:hover{border-color:var(--teal);}
+  .error-box{
+    display:none;background:rgba(224,90,77,0.08);border:1px solid var(--red);border-radius:4px;
+    padding:12px;margin-top:12px;font-family:var(--mono);font-size:11.5px;color:var(--red);white-space:pre-wrap;
+  }
+  .error-box.active{display:block;}
+  .save-line{font-family:var(--mono);font-size:11px;color:var(--teal);margin-top:8px;display:none;}
+  .save-line.active{display:block;}
+
+  .format-row{display:flex;gap:8px;margin-bottom:16px;}
+  .format-btn{
+    flex:1;background:var(--panel-raised);border:1px solid var(--border);border-radius:3px;color:var(--text-muted);
+    padding:10px;cursor:pointer;font-size:12.5px;font-weight:600;text-align:center;
+  }
+  .format-btn.active{border-color:var(--amber);color:var(--amber);background:rgba(255,138,61,0.08);}
+
+  .mode-tab{
+    flex:1;background:var(--panel-raised);border:1px solid var(--border);border-radius:3px;color:var(--text-muted);
+    padding:10px;cursor:pointer;font-size:12.5px;font-weight:600;text-align:center;
+  }
+  .mode-tab.active{border-color:var(--teal);color:var(--teal);background:rgba(45,212,191,0.08);}
+  .source-panel{display:none;}
+  .source-panel.active{display:block;}
+  #youtubePlayer{aspect-ratio:16/9;width:100%;max-width:480px;background:#000;border-radius:4px;}
+
+  .clip-list{display:flex;flex-direction:column;gap:12px;}
+  .clip-item{background:var(--panel-raised);border:1px solid var(--border);border-radius:5px;padding:16px;}
+  .clip-item-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:8px;}
+  .clip-title{font-size:13.5px;font-weight:700;}
+  .clip-meta{font-family:var(--mono);font-size:10.5px;color:var(--teal);white-space:nowrap;}
+  .clip-reason{font-size:12px;color:var(--text-muted);line-height:1.4;margin-bottom:12px;}
+  .clip-actions{display:flex;gap:8px;align-items:center;}
+  .clip-status{font-family:var(--mono);font-size:11px;color:var(--text-muted);}
+  .clip-status.done{color:var(--teal);}
+  .clip-status.error{color:var(--red);}
+
+  .video-preview-wrap{display:none;margin-top:14px;}
+  .video-preview-wrap.active{display:block;}
+  video{max-width:100%;max-height:200px;border-radius:4px;background:#000;}
+</style>
 </head>
 <body>
 
-  <!-- Header Header -->
-  <header class="navbar">
-    <div class="logo-group">
-      <span class="brand-name">Solicio</span>
-      <span class="badge">v1.0</span>
+<header>
+  <div class="logo"><span class="dot"></span>ClipPicker</div>
+  <div class="tagline">100% browser · no backend · no downloads</div>
+</header>
+
+<main>
+
+  <div class="step">
+    <div class="step-header">
+      <div class="step-num" id="num1">1</div>
+      <div class="step-title">Your Gemini API key</div>
     </div>
-    <div class="privacy-tag">
-      <span class="pulse-dot"></span> On-Device Processing (BYOK)
+    <div class="step-body">
+      <label class="field">
+        <span>Gemini API key</span>
+        <input type="password" id="geminiKey" placeholder="AIza...">
+      </label>
+      <button class="primary" id="saveKeyBtn">Save key</button>
+      <div class="save-line" id="saveLine">✓ Saved in this browser</div>
+      <p class="hint">Free, no card needed — get one at <b style="color:var(--teal);">aistudio.google.com/apikey</b>. Stored only in your browser, never sent anywhere except directly to Google's API.</p>
     </div>
-  </header>
+  </div>
 
-  <main class="app-layout">
-    <!-- Sidebar / Settings -->
-    <aside class="sidebar">
-      <div class="card">
-        <h3>API Configuration</h3>
-        <p class="card-sub">Your Gemini key remains encrypted in browser storage.</p>
-        
-        <div class="field-group">
-          <label for="apiKeyInput">Gemini API Key</label>
-          <input type="password" id="apiKeyInput" placeholder="AIzaSy..." />
-        </div>
-        
-        <button id="saveKeyBtn" class="btn btn-secondary">Save Key</button>
-        <span id="keyStatus" class="status-msg"></span>
+  <div class="step">
+    <div class="step-header">
+      <div class="step-num" id="num2">2</div>
+      <div class="step-title">Your video</div>
+    </div>
+    <div class="step-body">
+      <div class="format-row" style="margin-bottom:16px;">
+        <div class="mode-tab active" data-mode="upload">Upload file</div>
+        <div class="mode-tab" data-mode="youtube">YouTube link</div>
       </div>
 
-      <div class="card">
-        <h3>How it Works</h3>
-        <p class="card-sub">
-          Solicio divides the entire video transcript into equal structural windows (Beginning, Middle, and End/Climax) to extract contextual highlights across the entire runtime.
-        </p>
-      </div>
-    </aside>
-
-    <!-- Main Content Workspace -->
-    <section class="workspace">
-      <!-- Input Control Section -->
-      <div class="card control-card">
-        <h2>Extract Highlights</h2>
-        <p class="card-sub">Paste a YouTube URL to find short-form clip segments.</p>
-        
-        <div class="input-row">
-          <input 
-            type="text" 
-            id="ytUrlInput" 
-            placeholder="https://www.youtube.com/watch?v=..." 
-          />
-          <button id="analyzeBtn" class="btn btn-primary">Analyze Timeline</button>
-        </div>
-        <p id="statusText" class="status-indicator"></p>
-      </div>
-
-      <!-- Main Video Preview Player -->
-      <div class="card player-card">
-        <div class="player-header">
-          <h3>Source Video Preview</h3>
-          <span id="playerTimeLabel" class="time-badge">00:00</span>
-        </div>
-        
-        <div class="video-wrapper">
-          <div id="ytPlayer"></div>
-          <div id="playerPlaceholder" class="placeholder-overlay">
-            <span>Enter a valid YouTube URL to load the player</span>
-          </div>
+      <div class="source-panel active" id="panel-upload-mode">
+        <input type="file" id="fileInput" accept="video/*">
+        <div class="video-preview-wrap" id="videoPreviewWrap">
+          <video id="previewVideo" controls muted></video>
+          <p class="hint" id="previewRangeLabel" style="display:none;"></p>
         </div>
       </div>
 
-      <!-- Highlights Output Grid -->
-      <div class="card results-card">
-        <h3>Detected Highlights</h3>
-        <p class="card-sub">Extracted viral moments segmented with timestamps.</p>
-        
-        <div id="clipsGrid" class="clips-grid">
-          <div class="empty-state">
-            <p>No active highlights generated yet. Click "Analyze Timeline" to get started.</p>
-          </div>
+      <div class="source-panel" id="panel-youtube-mode">
+        <label class="field">
+          <span>YouTube URL</span>
+          <input type="text" id="youtubeUrlInput" placeholder="https://youtube.com/watch?v=...">
+        </label>
+        <button class="ghost" id="loadYoutubeBtn">Load video</button>
+        <p class="hint">Preview works directly from YouTube (official embed, no download). <b style="color:var(--amber);">Exporting a cropped clip still needs the actual file</b> \u2014 browsers can't extract pixel data from an embedded YouTube player, that's a hard security limit, not a bug. You can preview here, then upload the same file separately when you're ready to export.</p>
+        <div id="youtubePlayerWrap" style="display:none;margin-top:14px;">
+          <div id="youtubePlayer"></div>
+          <p class="hint" id="ytPreviewRangeLabel" style="display:none;"></p>
         </div>
       </div>
-    </section>
-  </main>
+    </div>
+  </div>
 
-  <!-- YouTube IFrame API -->
-  <script src="https://www.youtube.com/iframe_api"></script>
-  <script src="app.js"></script>
+  <div class="step">
+    <div class="step-header">
+      <div class="step-num" id="num3">3</div>
+      <div class="step-title">Paste the transcript</div>
+    </div>
+    <div class="step-body">
+      <textarea id="transcriptInput" placeholder="[0:00] Welcome back to the channel...&#10;[0:15] Today I want to talk about...&#10;[1:32] This is the part that changed everything for me..."></textarea>
+      <p class="hint">On YouTube: click "...more" under the video → "Show transcript" → copy all the text (with timestamps) and paste here. Timestamps in [m:ss] or (m:ss) format work best, but plain text works too.</p>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-header">
+      <div class="step-num" id="num4">4</div>
+      <div class="step-title">Find highlights</div>
+    </div>
+    <div class="step-body">
+      <label class="field" style="max-width:160px;">
+        <span>Max clips</span>
+        <input type="text" id="maxClips" value="5">
+      </label>
+      <button class="primary" id="findBtn">Find highlights</button>
+      <div class="error-box" id="findError"></div>
+    </div>
+  </div>
+
+  <div class="step" id="resultsStep" style="display:none;">
+    <div class="step-header">
+      <div class="step-num done">✓</div>
+      <div class="step-title">Clips</div>
+    </div>
+    <div class="step-body">
+      <div class="format-row">
+        <div class="format-btn active" data-ratio="0.5625">9:16</div>
+        <div class="format-btn" data-ratio="1">1:1</div>
+        <div class="format-btn" data-ratio="0.8">4:5</div>
+      </div>
+      <div class="clip-list" id="clipList"></div>
+    </div>
+  </div>
+
+</main>
+
+<script>
+// ---------- Gemini key ----------
+const geminiKeyInput = document.getElementById('geminiKey');
+const saveKeyBtn = document.getElementById('saveKeyBtn');
+const saveLine = document.getElementById('saveLine');
+const num1 = document.getElementById('num1');
+
+geminiKeyInput.value = localStorage.getItem('cp_geminiKey') || '';
+if (geminiKeyInput.value) { num1.classList.add('done'); num1.textContent = '✓'; }
+
+saveKeyBtn.addEventListener('click', () => {
+  const val = geminiKeyInput.value.trim();
+  localStorage.setItem('cp_geminiKey', val);
+  saveLine.classList.add('active');
+  setTimeout(() => saveLine.classList.remove('active'), 2000);
+  if (val) { num1.classList.add('done'); num1.textContent = '✓'; }
+});
+
+// ---------- Video upload ----------
+const fileInput = document.getElementById('fileInput');
+const previewVideo = document.getElementById('previewVideo');
+const videoPreviewWrap = document.getElementById('videoPreviewWrap');
+const num2 = document.getElementById('num2');
+let videoDuration = 0;
+let sourceMode = 'upload'; // 'upload' | 'youtube'
+
+// ---------- Mode switching (Upload vs YouTube link) ----------
+document.querySelectorAll('.mode-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.mode-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    sourceMode = tab.dataset.mode;
+    document.getElementById('panel-upload-mode').classList.toggle('active', sourceMode === 'upload');
+    document.getElementById('panel-youtube-mode').classList.toggle('active', sourceMode === 'youtube');
+  });
+});
+
+// ---------- YouTube embed (preview only, no download) ----------
+let ytPlayer = null;
+let ytApiReady = false;
+let ytBoundaryInterval = null;
+
+function loadYoutubeApiScript(){
+  return new Promise(resolve => {
+    if (window.YT && window.YT.Player) { ytApiReady = true; return resolve(); }
+    const tag = document.createElement('script');
+    tag.src = 'https://www.youtube.com/iframe_api';
+    document.head.appendChild(tag);
+    window.onYouTubeIframeAPIReady = () => { ytApiReady = true; resolve(); };
+  });
+}
+
+function extractYoutubeId(url){
+  const m = url.match(/(?:youtube\.com\/(?:watch\?v=|shorts\/|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+  return m ? m[1] : null;
+}
+
+document.getElementById('loadYoutubeBtn').addEventListener('click', async () => {
+  const url = document.getElementById('youtubeUrlInput').value.trim();
+  const videoId = extractYoutubeId(url);
+  if (!videoId){ alert('Could not find a valid YouTube video ID in that URL.'); return; }
+
+  await loadYoutubeApiScript();
+  document.getElementById('youtubePlayerWrap').style.display = 'block';
+
+  if (ytPlayer){
+    ytPlayer.loadVideoById(videoId);
+  } else {
+    ytPlayer = new YT.Player('youtubePlayer', {
+      videoId,
+      playerVars: { rel: 0 },
+      events: {
+        onReady: () => {
+          videoDuration = ytPlayer.getDuration();
+          num2.classList.add('done'); num2.textContent = '✓';
+        }
+      }
+    });
+  }
+});
+
+fileInput.addEventListener('change', () => {
+  const file = fileInput.files[0];
+  if (!file) return;
+  previewVideo.src = URL.createObjectURL(file);
+  videoPreviewWrap.classList.add('active');
+  num2.classList.add('done'); num2.textContent = '✓';
+});
+previewVideo.addEventListener('loadedmetadata', () => { videoDuration = previewVideo.duration; });
+
+// ---------- Transcript ----------
+const transcriptInput = document.getElementById('transcriptInput');
+const num3 = document.getElementById('num3');
+transcriptInput.addEventListener('input', () => {
+  if (transcriptInput.value.trim().length > 20) { num3.classList.add('done'); num3.textContent = '✓'; }
+  else { num3.classList.remove('done'); num3.textContent = '3'; }
+});
+
+// ---------- Find highlights (direct Gemini call from browser) ----------
+const findBtn = document.getElementById('findBtn');
+const findError = document.getElementById('findError');
+const maxClipsInput = document.getElementById('maxClips');
+const resultsStep = document.getElementById('resultsStep');
+const clipList = document.getElementById('clipList');
+
+function showFindError(msg){
+  findError.textContent = msg;
+  findError.classList.add('active');
+}
+
+findBtn.addEventListener('click', async () => {
+  findError.classList.remove('active');
+  const key = localStorage.getItem('cp_geminiKey');
+  const transcript = transcriptInput.value.trim();
+  const maxClips = parseInt(maxClipsInput.value) || 5;
+
+  if (!key){ showFindError('Add and save your Gemini API key in Step 1 first.'); return; }
+  if (sourceMode === 'upload' && !fileInput.files[0]){ showFindError('Upload a video in Step 2 first.'); return; }
+  if (sourceMode === 'youtube' && !ytPlayer){ showFindError('Load a YouTube video in Step 2 first.'); return; }
+  if (!transcript){ showFindError('Paste a transcript in Step 3 first.'); return; }
+
+  findBtn.disabled = true;
+  findBtn.textContent = 'Thinking…';
+
+  const prompt = `You are selecting the best short-form clips from a video transcript for social media (Reels/Shorts/TikTok). The video is approximately ${Math.round(videoDuration || 300)} seconds long.
+
+Pick up to ${maxClips} non-overlapping segments, each roughly 15-60 seconds, that would work best as standalone clips -- hooks, punchlines, strong opinions, emotional peaks, or self-contained stories.
+
+Transcript (may include timestamps like [m:ss] or (m:ss); if timestamps are missing, estimate reasonable positions based on the text order and total duration):
+${transcript}
+
+Respond ONLY with a JSON array, no markdown fences, no other text, in this exact format:
+[{"start": 12.4, "end": 45.0, "title": "short catchy title", "reason": "why this works as a clip"}]
+All start/end values must be numbers in seconds, within 0 and ${Math.round(videoDuration || 300)}.`;
+
+  try{
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${encodeURIComponent(key)}`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+    });
+    if (!res.ok){
+      const errBody = await res.text();
+      throw new Error(`Gemini API returned ${res.status}: ${errBody.slice(0,300)}`);
+    }
+    const data = await res.json();
+    let raw = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    raw = raw.trim();
+    if (raw.startsWith('```')){
+      raw = raw.replace(/^```json/i, '').replace(/^```/, '').replace(/```$/, '').trim();
+    }
+    const highlights = JSON.parse(raw);
+    renderClips(highlights);
+  }catch(err){
+    showFindError(`Couldn't get highlights: ${err.message}`);
+  }finally{
+    findBtn.disabled = false;
+    findBtn.textContent = 'Find highlights';
+  }
+});
+
+// ---------- Format selection ----------
+let targetRatio = 0.5625;
+document.querySelectorAll('.format-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.format-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    targetRatio = parseFloat(btn.dataset.ratio);
+  });
+});
+
+// ---------- Preview a clip within its timeframe only ----------
+const previewRangeLabel = document.getElementById('previewRangeLabel');
+let activeBoundaryHandler = null;
+
+function stopActivePreviewBoundary(){
+  if (activeBoundaryHandler){
+    previewVideo.removeEventListener('timeupdate', activeBoundaryHandler);
+    activeBoundaryHandler = null;
+  }
+}
+
+clipList.addEventListener('click', (e) => {
+  if (!e.target.classList.contains('preview-btn')) return;
+  const btn = e.target;
+  const start = parseFloat(btn.dataset.start);
+  const end = parseFloat(btn.dataset.end);
+
+  if (sourceMode === 'youtube'){
+    previewYoutubeClip(start, end);
+    return;
+  }
+
+  stopActivePreviewBoundary();
+
+  videoPreviewWrap.scrollIntoView({behavior:'smooth', block:'center'});
+  previewVideo.currentTime = start;
+  previewVideo.play();
+
+  previewRangeLabel.style.display = 'block';
+  previewRangeLabel.textContent = `Previewing ${start.toFixed(0)}s – ${end.toFixed(0)}s — will pause automatically at the end of this clip`;
+  previewRangeLabel.style.color = 'var(--teal)';
+
+  activeBoundaryHandler = () => {
+    if (previewVideo.currentTime >= end){
+      previewVideo.pause();
+      previewVideo.currentTime = end;
+      previewRangeLabel.textContent = `Clip finished (${start.toFixed(0)}s – ${end.toFixed(0)}s) — click Preview again to replay`;
+      previewRangeLabel.style.color = 'var(--text-muted)';
+      stopActivePreviewBoundary();
+    }
+  };
+  previewVideo.addEventListener('timeupdate', activeBoundaryHandler);
+});
+
+function previewYoutubeClip(start, end){
+  if (!ytPlayer){ alert('Load a YouTube video first.'); return; }
+  if (ytBoundaryInterval) clearInterval(ytBoundaryInterval);
+
+  document.getElementById('youtubePlayerWrap').scrollIntoView({behavior:'smooth', block:'center'});
+  const label = document.getElementById('ytPreviewRangeLabel');
+  label.style.display = 'block';
+  label.textContent = `Previewing ${start.toFixed(0)}s – ${end.toFixed(0)}s — will pause automatically at the end of this clip`;
+  label.style.color = 'var(--teal)';
+
+  ytPlayer.seekTo(start, true);
+  ytPlayer.playVideo();
+
+  ytBoundaryInterval = setInterval(() => {
+    if (ytPlayer.getCurrentTime() >= end){
+      ytPlayer.pauseVideo();
+      label.textContent = `Clip finished (${start.toFixed(0)}s – ${end.toFixed(0)}s) — click Preview again to replay`;
+      label.style.color = 'var(--text-muted)';
+      clearInterval(ytBoundaryInterval);
+      ytBoundaryInterval = null;
+    }
+  }, 250);
+}
+
+// If the user manually scrubs/plays past a clip boundary using native controls, don't fight them.
+previewVideo.addEventListener('seeking', () => {
+  // A manual seek outside the active preview cancels the auto-pause boundary,
+  // so dragging the native scrubber isn't constantly yanked back.
+  if (activeBoundaryHandler) stopActivePreviewBoundary();
+});
+
+
+function renderClips(highlights){
+  resultsStep.style.display = 'block';
+  clipList.innerHTML = '';
+  highlights.forEach((h, i) => {
+    const item = document.createElement('div');
+    item.className = 'clip-item';
+    item.innerHTML = `
+      <div class="clip-item-top">
+        <div class="clip-title">${escapeHtml(h.title || 'Clip ' + (i+1))}</div>
+        <div class="clip-meta">${h.start.toFixed(0)}s–${h.end.toFixed(0)}s</div>
+      </div>
+      <div class="clip-reason">${escapeHtml(h.reason || '')}</div>
+      <div class="clip-actions">
+        <button class="ghost preview-btn" data-start="${h.start}" data-end="${h.end}" data-idx="${i}">▶ Preview clip</button>
+        <button class="ghost export-btn" data-start="${h.start}" data-end="${h.end}" data-idx="${i}">Generate & download</button>
+        <span class="clip-status" id="status-${i}"></span>
+      </div>
+    `;
+    clipList.appendChild(item);
+  });
+  resultsStep.scrollIntoView({behavior:'smooth'});
+}
+
+function escapeHtml(str){
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+// ---------- Face detection (lazy loaded once) ----------
+let faceModelReady = false;
+async function ensureFaceModel(){
+  if (faceModelReady) return;
+  await new Promise(res => {
+    if (window.faceapi) return res();
+    const check = setInterval(() => { if (window.faceapi){ clearInterval(check); res(); } }, 100);
+  });
+  await faceapi.nets.tinyFaceDetector.loadFromUri('https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js-models@master/tiny_face_detector');
+  faceModelReady = true;
+}
+
+// ---------- Export a clip: seek, face-track crop, record ----------
+clipList.addEventListener('click', async (e) => {
+  if (!e.target.classList.contains('export-btn')) return;
+  const btn = e.target;
+  const start = parseFloat(btn.dataset.start);
+  const end = parseFloat(btn.dataset.end);
+  const idx = btn.dataset.idx;
+  const statusEl = document.getElementById('status-' + idx);
+
+  if (sourceMode === 'youtube'){
+    statusEl.className = 'clip-status error';
+    statusEl.textContent = 'Can\'t export from a YouTube embed (browser security limit) — upload this video as a file in Step 2 to export this clip.';
+    return;
+  }
+
+  btn.disabled = true;
+  statusEl.className = 'clip-status';
+  statusEl.textContent = 'Loading face model…';
+
+  try{
+    await ensureFaceModel();
+
+    const vw = previewVideo.videoWidth, vh = previewVideo.videoHeight;
+    let cropW, cropH;
+    if (vw/vh > targetRatio){ cropH = vh; cropW = vh*targetRatio; }
+    else { cropW = vw; cropH = vw/targetRatio; }
+
+    statusEl.textContent = 'Seeking…';
+    previewVideo.pause();
+    previewVideo.currentTime = start;
+    await new Promise(res => { previewVideo.onseeked = res; });
+
+    statusEl.textContent = 'Rendering…';
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.round(cropW);
+    canvas.height = Math.round(cropH);
+    const ctx = canvas.getContext('2d');
+
+    let mimeType = 'video/webm;codecs=vp9';
+    if (MediaRecorder.isTypeSupported('video/mp4')) mimeType = 'video/mp4';
+
+    const canvasStream = canvas.captureStream(30);
+    try{
+      const srcStream = previewVideo.captureStream ? previewVideo.captureStream() : previewVideo.mozCaptureStream();
+      srcStream.getAudioTracks().forEach(t => canvasStream.addTrack(t));
+    }catch(err){}
+
+    const recorder = new MediaRecorder(canvasStream, { mimeType, videoBitsPerSecond: 8_000_000 });
+    const chunks = [];
+    recorder.ondataavailable = ev => { if (ev.data.size) chunks.push(ev.data); };
+
+    const done = new Promise(resolve => {
+      recorder.onstop = () => {
+        const blob = new Blob(chunks, { type: mimeType });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `clip_${parseInt(idx)+1}.${mimeType.includes('mp4') ? 'mp4' : 'webm'}`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        resolve();
+      };
+    });
+
+    recorder.start();
+    previewVideo.play();
+
+    let smoothedCx = vw/2;
+    let lastDetect = 0;
+
+    async function draw(){
+      if (previewVideo.paused || previewVideo.ended || previewVideo.currentTime >= end){
+        recorder.stop();
+        previewVideo.pause();
+        return;
+      }
+      const now = performance.now();
+      if (now - lastDetect > 300){
+        lastDetect = now;
+        try{
+          const detections = await faceapi.detectAllFaces(previewVideo, new faceapi.TinyFaceDetectorOptions({inputSize:224, scoreThreshold:0.4}));
+          if (detections.length){
+            const best = detections.reduce((a,b) => (a.box.area > b.box.area ? a : b));
+            const targetCx = best.box.x + best.box.width/2;
+            smoothedCx = smoothedCx + (targetCx - smoothedCx) * 0.25;
+          }
+        }catch(err){}
+      }
+      const cropX = Math.min(Math.max(smoothedCx - cropW/2, 0), vw - cropW);
+      const cropY = (vh - cropH)/2;
+      try{
+        ctx.drawImage(previewVideo, cropX, cropY, cropW, cropH, 0, 0, canvas.width, canvas.height);
+      }catch(err){
+        recorder.stop();
+        statusEl.textContent = 'Export blocked (security restriction)';
+        statusEl.classList.add('error');
+        return;
+      }
+      requestAnimationFrame(draw);
+    }
+    draw();
+
+    await done;
+    statusEl.textContent = '✓ Downloaded';
+    statusEl.classList.add('done');
+  }catch(err){
+    statusEl.textContent = 'Failed: ' + err.message;
+    statusEl.classList.add('error');
+  }finally{
+    btn.disabled = false;
+  }
+});
+</script>
+
 </body>
 </html>
