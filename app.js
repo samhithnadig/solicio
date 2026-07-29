@@ -5,19 +5,25 @@
 let player = null;
 let activeStopTimer = null;
 
-// --- 1. Initialize API Storage ---
+// --- 1. API Key Sanitizer & Storage ---
 const apiKeyInput = document.getElementById('apiKeyInput');
 const saveKeyBtn = document.getElementById('saveKeyBtn');
 const keyStatus = document.getElementById('keyStatus');
 
+// Load stored key on boot
 if (apiKeyInput) {
   apiKeyInput.value = localStorage.getItem('solicio_gemini_key') || '';
 }
 
 if (saveKeyBtn) {
   saveKeyBtn.addEventListener('click', () => {
-    const val = apiKeyInput.value.trim();
-    localStorage.setItem('solicio_gemini_key', val);
+    const rawVal = apiKeyInput.value.trim();
+    if (!rawVal) {
+      keyStatus.style.color = 'var(--red)';
+      keyStatus.textContent = 'Please enter an API key.';
+      return;
+    }
+    localStorage.setItem('solicio_gemini_key', rawVal);
     keyStatus.style.color = 'var(--teal)';
     keyStatus.textContent = '✓ Saved in localStorage';
     setTimeout(() => { keyStatus.textContent = ''; }, 2500);
@@ -74,14 +80,17 @@ function playSegment(startSec, endSec) {
 }
 
 function onPlayerStateChange(event) {
-  // Clear auto-stop timer if user manually alters playback state
+  // Clear auto-stop timer if user manually pauses or interacts with player
   if (event.data === YT.PlayerState.PAUSED && activeStopTimer) {
     clearTimeout(activeStopTimer);
   }
 }
 
-// --- 3. Gemini Flash Multi-Model Engine ---
+// --- 3. Gemini Multi-Model Fallback Engine ---
 async function callGemini(apiKey, systemPrompt, userContent) {
+  // Strips any potential hidden whitespace
+  const sanitizedKey = apiKey.trim();
+
   const models = [
     'gemini-2.5-flash',
     'gemini-2.0-flash',
@@ -92,7 +101,7 @@ async function callGemini(apiKey, systemPrompt, userContent) {
 
   for (const model of models) {
     try {
-      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${sanitizedKey}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -131,11 +140,19 @@ async function callGemini(apiKey, systemPrompt, userContent) {
 
 // --- 4. Video Analysis Execution ---
 document.getElementById('analyzeBtn')?.addEventListener('click', async () => {
-  const apiKey = localStorage.getItem('solicio_gemini_key') || apiKeyInput?.value.trim();
+  // Dynamically pull from the input field first, then fallback to local storage
+  const activeInputKey = apiKeyInput?.value.trim();
+  const apiKey = activeInputKey || localStorage.getItem('solicio_gemini_key');
+
+  // Sync back to storage if a new key was typed
+  if (activeInputKey) {
+    localStorage.setItem('solicio_gemini_key', activeInputKey);
+  }
+
   const url = document.getElementById('ytUrlInput')?.value.trim();
   const status = document.getElementById('statusText');
 
-  if (!apiKey) return alert("Please enter and save your Gemini API key first.");
+  if (!apiKey) return alert("Please enter your Gemini API key in the sidebar.");
   const videoId = getYouTubeId(url);
   if (!videoId) return alert("Please enter a valid YouTube URL.");
 
@@ -193,7 +210,7 @@ function renderClipCards(clips) {
   if (!grid) return;
   grid.innerHTML = '';
 
-  clips.forEach((clip, idx) => {
+  clips.forEach((clip) => {
     const card = document.createElement('div');
     card.className = 'clip-card';
     card.innerHTML = `
