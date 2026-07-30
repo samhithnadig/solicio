@@ -17,13 +17,12 @@
   </p>
 
   <br />
-  <img src="<img width="1886" height="647" alt="image" src="https://github.com/user-attachments/assets/6d0885d4-e417-4abd-803e-f55666b8a9a5" />
-" alt="Solicio App Banner" width="100%" />
+
   <br />
   <br />
 
 </div>
----
+
 
 ## 💡 What is Solicio?
 
@@ -31,7 +30,7 @@
 
 Unlike standard video tools, **Solicio performs all video processing locally in your browser** using WebAssembly (`FFmpeg.wasm`) and HTML5 Canvas. Your files or any info is never traced by us.
 
----
+
 
 ## ✨ Key Features
 
@@ -41,7 +40,7 @@ Unlike standard video tools, **Solicio performs all video processing locally in 
 * 🔒 **Privacy First:** All video rendering occurs locally on your own GPU/CPU.
 * 🌐 **Global Edge Delivery:** Hosted on Cloudflare Pages/Workers and Vercel for low latency worldwide.
 
----
+
 
 ## 🛠️ Architecture & Tech Stack
 
