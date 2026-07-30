@@ -3,100 +3,137 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ClipPicker — AI Highlights, No Backend</title>
+<title>Solicio — AI Highlights, No Backend</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500&display=swap" rel="stylesheet">
 <script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
 <style>
   :root{
-    --bg:#0d0f12; --panel:#15181c; --panel-raised:#1c2026; --border:#262b31;
-    --amber:#ff8a3d; --teal:#2dd4bf; --red:#e05a4d; --text:#f1efe9; --text-muted:#8a8f98;
-    --mono: 'SF Mono', 'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace;
-    --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+    --bg:#08080c; --panel:#101017; --panel-raised:#181820; --border:#2a2a36;
+    --magenta:#ff2d7a; --cyan:#00e5ff; --red:#ff4d5e; --text:#f2f0f7; --text-muted:#87869a;
+    --mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
+    --sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+    --display: 'Space Grotesk', var(--sans);
+    --cut: 14px;
   }
   *{box-sizing:border-box;} html,body{margin:0;padding:0;}
-  body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;}
-  header{display:flex;align-items:center;justify-content:space-between;padding:22px 32px;border-bottom:1px solid var(--border);}
-  .logo{font-weight:900;font-size:20px;letter-spacing:0.05em;text-transform:uppercase;display:flex;align-items:center;gap:10px;}
-  .logo .dot{width:9px;height:9px;border-radius:50%;background:var(--amber);box-shadow:0 0 10px var(--amber);}
-  .tagline{color:var(--text-muted);font-size:12px;font-family:var(--mono);}
+  body{
+    background:
+      repeating-linear-gradient(180deg, rgba(255,255,255,0.012) 0px, rgba(255,255,255,0.012) 1px, transparent 1px, transparent 3px),
+      var(--bg);
+    color:var(--text);font-family:var(--sans);min-height:100vh;
+  }
+  header{
+    display:flex;align-items:center;justify-content:space-between;padding:22px 32px;
+    border-bottom:1px solid var(--border);
+  }
+  .logo{
+    font-family:var(--display);font-weight:700;font-size:20px;letter-spacing:0.01em;
+    display:flex;align-items:center;gap:10px;
+  }
+  .logo .dot{
+    width:9px;height:9px;background:var(--magenta);box-shadow:0 0 12px var(--magenta);
+    clip-path:polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+  }
+  .tagline{color:var(--text-muted);font-size:11px;font-family:var(--mono);letter-spacing:0.03em;}
   main{max-width:820px;margin:0 auto;padding:32px 24px 80px;}
-  .step{background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:26px;margin-bottom:20px;}
+
+  .step{
+    position:relative;background:var(--panel);border:1px solid var(--border);
+    padding:26px 26px 26px 26px;margin-bottom:20px;
+    clip-path:polygon(0 0, calc(100% - var(--cut)) 0, 100% var(--cut), 100% 100%, var(--cut) 100%, 0 calc(100% - var(--cut)));
+  }
+  .step::before{
+    content:'';position:absolute;top:0;left:0;bottom:0;width:2px;
+    background:linear-gradient(180deg, var(--magenta), transparent 70%);
+  }
   .step-header{display:flex;align-items:center;gap:12px;margin-bottom:16px;}
   .step-num{
-    width:26px;height:26px;border-radius:50%;background:var(--panel-raised);border:1px solid var(--border);
-    display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:12px;color:var(--text-muted);flex-shrink:0;
+    font-family:var(--mono);font-size:11px;font-weight:600;color:var(--text-muted);
+    border:1px solid var(--border);padding:4px 8px;letter-spacing:0.05em;flex-shrink:0;
   }
-  .step-num.done{background:var(--teal);color:#062420;border-color:var(--teal);}
-  .step-title{font-size:15px;font-weight:700;}
+  .step-num.done{border-color:var(--cyan);color:var(--cyan);}
+  .step-num::before{content:'CH.';opacity:0.5;}
+  .step-title{font-family:var(--display);font-size:15px;font-weight:700;letter-spacing:0.01em;}
   .step-body{padding-left:38px;}
-  .hint{font-size:12px;color:var(--text-muted);line-height:1.5;margin-top:8px;}
+  .hint{font-size:12px;color:var(--text-muted);line-height:1.55;margin-top:8px;}
   label.field{display:block;margin-bottom:14px;}
-  label.field span{display:block;font-size:12px;color:var(--text-muted);margin-bottom:6px;}
+  label.field span{
+    display:block;font-size:10.5px;color:var(--text-muted);margin-bottom:6px;
+    font-family:var(--mono);letter-spacing:0.06em;text-transform:uppercase;
+  }
   input[type=text], input[type=password], textarea{
-    width:100%;background:var(--panel-raised);border:1px solid var(--border);border-radius:3px;
+    width:100%;background:var(--panel-raised);border:1px solid var(--border);
     color:var(--text);padding:11px 13px;font-family:var(--mono);font-size:12.5px;
   }
   textarea{min-height:140px;resize:vertical;line-height:1.5;}
-  input:focus, textarea:focus{outline:none;border-color:var(--amber);}
+  input:focus, textarea:focus{outline:none;border-color:var(--magenta);}
   input[type=file]{
-    width:100%;background:var(--panel-raised);border:1px dashed var(--border);border-radius:3px;
+    width:100%;background:var(--panel-raised);border:1px dashed var(--border);
     color:var(--text-muted);padding:20px 13px;font-size:13px;
   }
   button.primary{
-    background:var(--amber);color:#1a1305;border:none;border-radius:3px;padding:13px 22px;
-    font-size:13px;font-weight:700;cursor:pointer;
+    background:var(--magenta);color:#1a0410;border:none;padding:13px 22px;
+    font-family:var(--mono);font-size:12px;font-weight:600;letter-spacing:0.05em;text-transform:uppercase;
+    cursor:pointer;clip-path:polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
   }
-  button.primary:hover{filter:brightness(1.08);}
+  button.primary:hover{filter:brightness(1.12);}
   button.primary:disabled{background:var(--panel-raised);color:var(--text-muted);cursor:not-allowed;}
   button.ghost{
-    background:transparent;border:1px solid var(--border);color:var(--text);border-radius:3px;
-    padding:9px 16px;font-size:12.5px;cursor:pointer;
+    background:transparent;border:1px solid var(--border);color:var(--text);
+    padding:9px 16px;font-family:var(--mono);font-size:11.5px;letter-spacing:0.04em;text-transform:uppercase;
+    cursor:pointer;
   }
-  button.ghost:hover{border-color:var(--teal);}
+  button.ghost:hover{border-color:var(--cyan);color:var(--cyan);}
   .error-box{
-    display:none;background:rgba(224,90,77,0.08);border:1px solid var(--red);border-radius:4px;
+    display:none;background:rgba(255,77,94,0.08);border:1px solid var(--red);
     padding:12px;margin-top:12px;font-family:var(--mono);font-size:11.5px;color:var(--red);white-space:pre-wrap;
   }
   .error-box.active{display:block;}
-  .save-line{font-family:var(--mono);font-size:11px;color:var(--teal);margin-top:8px;display:none;}
+  .save-line{font-family:var(--mono);font-size:11px;color:var(--cyan);margin-top:8px;display:none;}
   .save-line.active{display:block;}
 
   .format-row{display:flex;gap:8px;margin-bottom:16px;}
   .format-btn{
-    flex:1;background:var(--panel-raised);border:1px solid var(--border);border-radius:3px;color:var(--text-muted);
-    padding:10px;cursor:pointer;font-size:12.5px;font-weight:600;text-align:center;
+    flex:1;background:var(--panel-raised);border:1px solid var(--border);color:var(--text-muted);
+    padding:10px;cursor:pointer;font-family:var(--mono);font-size:12px;font-weight:600;text-align:center;letter-spacing:0.03em;
   }
-  .format-btn.active{border-color:var(--amber);color:var(--amber);background:rgba(255,138,61,0.08);}
+  .format-btn.active{border-color:var(--magenta);color:var(--magenta);background:rgba(255,45,122,0.08);}
 
   .mode-tab{
-    flex:1;background:var(--panel-raised);border:1px solid var(--border);border-radius:3px;color:var(--text-muted);
-    padding:10px;cursor:pointer;font-size:12.5px;font-weight:600;text-align:center;
+    flex:1;background:var(--panel-raised);border:1px solid var(--border);color:var(--text-muted);
+    padding:10px;cursor:pointer;font-family:var(--mono);font-size:12px;font-weight:600;text-align:center;letter-spacing:0.03em;
   }
-  .mode-tab.active{border-color:var(--teal);color:var(--teal);background:rgba(45,212,191,0.08);}
+  .mode-tab.active{border-color:var(--cyan);color:var(--cyan);background:rgba(0,229,255,0.08);}
   .source-panel{display:none;}
   .source-panel.active{display:block;}
-  #youtubePlayer{aspect-ratio:16/9;width:100%;max-width:480px;background:#000;border-radius:4px;}
+  #youtubePlayer{aspect-ratio:16/9;width:100%;max-width:480px;background:#000;}
 
   .clip-list{display:flex;flex-direction:column;gap:12px;}
-  .clip-item{background:var(--panel-raised);border:1px solid var(--border);border-radius:5px;padding:16px;}
+  .clip-item{
+    background:var(--panel-raised);border:1px solid var(--border);padding:16px;
+    border-left:2px solid var(--cyan);
+  }
   .clip-item-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:8px;}
-  .clip-title{font-size:13.5px;font-weight:700;}
-  .clip-meta{font-family:var(--mono);font-size:10.5px;color:var(--teal);white-space:nowrap;}
+  .clip-title{font-family:var(--display);font-size:13.5px;font-weight:700;}
+  .clip-meta{font-family:var(--mono);font-size:10.5px;color:var(--cyan);white-space:nowrap;}
   .clip-reason{font-size:12px;color:var(--text-muted);line-height:1.4;margin-bottom:12px;}
-  .clip-actions{display:flex;gap:8px;align-items:center;}
+  .clip-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
   .clip-status{font-family:var(--mono);font-size:11px;color:var(--text-muted);}
-  .clip-status.done{color:var(--teal);}
+  .clip-status.done{color:var(--cyan);}
   .clip-status.error{color:var(--red);}
 
   .video-preview-wrap{display:none;margin-top:14px;}
   .video-preview-wrap.active{display:block;}
-  video{max-width:100%;max-height:200px;border-radius:4px;background:#000;}
+  video{max-width:100%;max-height:200px;background:#000;}
 </style>
 </head>
 <body>
 
 <header>
-  <div class="logo"><span class="dot"></span>ClipPicker</div>
-  <div class="tagline">100% browser · no backend · no downloads</div>
+  <div class="logo"><span class="dot"></span>Solicio</div>
+  <div class="tagline">AI clip finder · runs entirely in your browser</div>
 </header>
 
 <main>
@@ -113,7 +150,7 @@
       </label>
       <button class="primary" id="saveKeyBtn">Save key</button>
       <div class="save-line" id="saveLine">✓ Saved in this browser</div>
-      <p class="hint">Free, no card needed — get one at <b style="color:var(--teal);">aistudio.google.com/apikey</b>. Stored only in your browser, never sent anywhere except directly to Google's API.</p>
+      <p class="hint">Free, no card needed — get one at <b style="color:var(--cyan);">aistudio.google.com/apikey</b>. Stored only in your browser, never sent anywhere except directly to Google's API.</p>
     </div>
   </div>
 
@@ -142,7 +179,7 @@
           <input type="text" id="youtubeUrlInput" placeholder="https://youtube.com/watch?v=...">
         </label>
         <button class="ghost" id="loadYoutubeBtn">Load video</button>
-        <p class="hint">Preview works directly from YouTube (official embed, no download). <b style="color:var(--amber);">Exporting a cropped clip still needs the actual file</b> \u2014 browsers can't extract pixel data from an embedded YouTube player, that's a hard security limit, not a bug. You can preview here, then upload the same file separately when you're ready to export.</p>
+        <p class="hint">Preview works directly from YouTube (official embed, no download). <b style="color:var(--magenta);">Exporting a cropped clip still needs the actual file</b> \u2014 browsers can't extract pixel data from an embedded YouTube player, that's a hard security limit, not a bug. You can preview here, then upload the same file separately when you're ready to export.</p>
         <div id="youtubePlayerWrap" style="display:none;margin-top:14px;">
           <div id="youtubePlayer"></div>
           <p class="hint" id="ytPreviewRangeLabel" style="display:none;"></p>
@@ -157,7 +194,7 @@
       <div class="step-title">Paste the transcript</div>
     </div>
     <div class="step-body">
-      <p class="hint" id="transcriptModeNote" style="margin-top:0;margin-bottom:12px;color:var(--teal);display:none;">Not needed for YouTube link mode — Gemini watches the video directly. Skip to Step 4.</p>
+      <p class="hint" id="transcriptModeNote" style="margin-top:0;margin-bottom:12px;color:var(--cyan);display:none;">Not needed for YouTube link mode — Gemini watches the video directly. Skip to Step 4.</p>
       <textarea id="transcriptInput" placeholder="[0:00] Welcome back to the channel...&#10;[0:15] Today I want to talk about...&#10;[1:32] This is the part that changed everything for me..."></textarea>
       <p class="hint">Only needed in Upload file mode (a local file can't be watched by Gemini directly, only a public YouTube URL can). On YouTube: click "...more" under the video → "Show transcript" → copy all the text (with timestamps) and paste here.</p>
     </div>
@@ -202,12 +239,12 @@ const saveKeyBtn = document.getElementById('saveKeyBtn');
 const saveLine = document.getElementById('saveLine');
 const num1 = document.getElementById('num1');
 
-geminiKeyInput.value = localStorage.getItem('cp_geminiKey') || '';
+geminiKeyInput.value = localStorage.getItem('solicio_geminiKey') || '';
 if (geminiKeyInput.value) { num1.classList.add('done'); num1.textContent = '✓'; }
 
 saveKeyBtn.addEventListener('click', () => {
   const val = geminiKeyInput.value.trim();
-  localStorage.setItem('cp_geminiKey', val);
+  localStorage.setItem('solicio_geminiKey', val);
   saveLine.classList.add('active');
   setTimeout(() => saveLine.classList.remove('active'), 2000);
   if (val) { num1.classList.add('done'); num1.textContent = '✓'; }
@@ -310,7 +347,7 @@ function showFindError(msg){
 
 findBtn.addEventListener('click', async () => {
   findError.classList.remove('active');
-  const key = localStorage.getItem('cp_geminiKey');
+  const key = localStorage.getItem('solicio_geminiKey');
   const transcript = transcriptInput.value.trim();
   const maxClips = parseInt(maxClipsInput.value) || 5;
 
@@ -424,7 +461,7 @@ clipList.addEventListener('click', (e) => {
 
   previewRangeLabel.style.display = 'block';
   previewRangeLabel.textContent = `Previewing ${start.toFixed(0)}s – ${end.toFixed(0)}s — will pause automatically at the end of this clip`;
-  previewRangeLabel.style.color = 'var(--teal)';
+  previewRangeLabel.style.color = 'var(--cyan)';
 
   activeBoundaryHandler = () => {
     if (previewVideo.currentTime >= end){
@@ -446,7 +483,7 @@ function previewYoutubeClip(start, end){
   const label = document.getElementById('ytPreviewRangeLabel');
   label.style.display = 'block';
   label.textContent = `Previewing ${start.toFixed(0)}s – ${end.toFixed(0)}s — will pause automatically at the end of this clip`;
-  label.style.color = 'var(--teal)';
+  label.style.color = 'var(--cyan)';
 
   ytPlayer.seekTo(start, true);
   ytPlayer.playVideo();
