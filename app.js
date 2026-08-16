@@ -1,5 +1,5 @@
 // ==========================================
-//           SOLICIO AI - CLIENT ENGINE
+//            SOLICIO AI - CLIENT ENGINE
 // ==========================================
 
 let player = null;
@@ -95,7 +95,6 @@ function onPlayerStateChange(event) {
 async function callGemini(apiKey, systemPrompt, userContent) {
   const sanitizedKey = apiKey.trim();
 
-  // Active production model cascade
   const models = [
     'gemini-3.6-flash',
     'gemini-3.5-flash-lite',
@@ -147,6 +146,18 @@ async function callGemini(apiKey, systemPrompt, userContent) {
 
 // --- 4. Video Analysis Execution ---
 document.getElementById('analyzeBtn')?.addEventListener('click', async () => {
+  // --- DISCLAIMER CHECK ---
+  const disclaimer = `LEGAL NOTICE:
+Solicio AI is provided under the MIT License "as is". 
+By proceeding, you agree that:
+1. You are solely responsible for your use of this tool.
+2. Clipping or reusing copyrighted material without permission may violate laws and is morally wrong.
+3. The creator of this tool assumes no responsibility for copyright claims or legal actions taken against you.
+
+Do you accept these terms and wish to continue?`;
+
+  if (!confirm(disclaimer)) return;
+
   const activeInputKey = apiKeyInput?.value.trim();
   const apiKey = activeInputKey || localStorage.getItem('solicio_gemini_key');
 
