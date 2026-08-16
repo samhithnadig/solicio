@@ -146,7 +146,7 @@ async function callGemini(apiKey, systemPrompt, userContent) {
 
 // --- 4. Video Analysis Execution ---
 document.getElementById('analyzeBtn')?.addEventListener('click', async () => {
-  // --- DISCLAIMER CHECK ---
+  // --- ADDED DISCLAIMER ---
   const disclaimer = `LEGAL NOTICE:
 Solicio AI is provided under the MIT License "as is". 
 By proceeding, you agree that:
@@ -157,6 +157,7 @@ By proceeding, you agree that:
 Do you accept these terms and wish to continue?`;
 
   if (!confirm(disclaimer)) return;
+  // --- END DISCLAIMER ---
 
   const activeInputKey = apiKeyInput?.value.trim();
   const apiKey = activeInputKey || localStorage.getItem('solicio_gemini_key');
