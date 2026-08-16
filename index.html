@@ -134,6 +134,63 @@
   .video-preview-wrap{display:none;margin-top:14px;}
   .video-preview-wrap.active{display:block;}
   video{max-width:100%;max-height:200px;background:#000;}
+
+  /* ---------- Consent modal ---------- */
+  .modal-overlay{
+    display:none;position:fixed;inset:0;background:rgba(4,4,7,0.82);
+    backdrop-filter:blur(2px);z-index:1000;
+    align-items:center;justify-content:center;padding:20px;
+  }
+  .modal-overlay.active{display:flex;}
+  .modal-box{
+    position:relative;background:var(--panel);border:1px solid var(--border);
+    max-width:560px;width:100%;max-height:86vh;overflow-y:auto;
+    padding:28px 28px 24px;
+    clip-path:polygon(0 0, calc(100% - var(--cut)) 0, 100% var(--cut), 100% 100%, var(--cut) 100%, 0 calc(100% - var(--cut)));
+  }
+  .modal-box::before{
+    content:'';position:absolute;top:0;left:0;bottom:0;width:2px;
+    background:linear-gradient(180deg, var(--red), transparent 70%);
+  }
+  .modal-eyebrow{
+    font-family:var(--mono);font-size:10.5px;color:var(--red);letter-spacing:0.08em;
+    text-transform:uppercase;margin-bottom:6px;
+  }
+  .modal-title{font-family:var(--display);font-size:19px;font-weight:700;margin-bottom:16px;}
+  .modal-body{font-size:13px;line-height:1.6;color:var(--text);}
+  .modal-body p{margin:0 0 12px;}
+  .modal-body ul{margin:0 0 14px;padding-left:20px;}
+  .modal-body li{margin-bottom:8px;color:var(--text-muted);}
+  .modal-body li b{color:var(--text);}
+  .license-box{
+    background:var(--panel-raised);border:1px solid var(--border);
+    font-family:var(--mono);font-size:10.5px;line-height:1.6;color:var(--text-muted);
+    padding:14px;max-height:150px;overflow-y:auto;margin:14px 0 16px;white-space:pre-wrap;
+  }
+  .modal-agree-row{
+    display:flex;align-items:flex-start;gap:10px;margin:16px 0 20px;
+    font-size:12.5px;color:var(--text);line-height:1.5;
+  }
+  .modal-agree-row input[type=checkbox]{
+    margin-top:2px;width:16px;height:16px;flex-shrink:0;accent-color:var(--magenta);cursor:pointer;
+  }
+  .modal-actions{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;}
+  button.decline{
+    background:transparent;border:1px solid var(--border);color:var(--text-muted);
+    padding:11px 18px;font-family:var(--mono);font-size:11.5px;letter-spacing:0.04em;text-transform:uppercase;
+    cursor:pointer;
+  }
+  button.decline:hover{border-color:var(--red);color:var(--red);}
+  button.agree{
+    background:var(--panel-raised);color:var(--text-muted);border:1px solid var(--border);
+    padding:11px 18px;font-family:var(--mono);font-size:11.5px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;
+    cursor:not-allowed;transition:all .15s ease;
+    clip-path:polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+  }
+  button.agree.enabled{
+    background:var(--magenta);color:#1a0410;border-color:var(--magenta);cursor:pointer;
+  }
+  button.agree.enabled:hover{filter:brightness(1.12);}
 </style>
 </head>
 <body>
@@ -242,7 +299,88 @@
 
 </main>
 
+<!-- ---------- Consent modal (blocking, no click-outside / Escape dismissal) ---------- -->
+<div class="modal-overlay" id="consentModal">
+  <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="consentTitle">
+    <div class="modal-eyebrow">Before you load a video</div>
+    <div class="modal-title" id="consentTitle">License &amp; copyright agreement</div>
+    <div class="modal-body">
+      <p>Solicio is a tool. It doesn't check whether the video you provide is something you have the right to clip and re-post — that responsibility is entirely yours.</p>
+      <ul>
+        <li><b>You confirm you have the right</b> to use, clip, and reformat this video — because you own it, you have permission, or your use clearly qualifies as fair use/fair dealing where you are.</li>
+        <li><b>Solicio is provided "as is,"</b> with no warranty, under the MIT License below.</li>
+        <li><b>You, not the creator of this tool,</b> are solely responsible for how you use any clips it generates, including any copyright claims that result.</li>
+      </ul>
+      <div class="license-box">MIT License
+
+Copyright (c) Solicio
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to
+deal in the Software without restriction, including without limitation the
+rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+sell copies of the Software, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+DEALINGS IN THE SOFTWARE.</div>
+      <label class="modal-agree-row">
+        <input type="checkbox" id="consentCheckbox">
+        <span>I have the rights to use this video, and I agree to the MIT License and the terms above.</span>
+      </label>
+    </div>
+    <div class="modal-actions">
+      <button class="decline" id="consentDecline">Cancel</button>
+      <button class="agree" id="consentAgree" disabled>Agree &amp; continue</button>
+    </div>
+  </div>
+</div>
+
 <script>
+// ---------- Consent gate ----------
+// Blocks any video-loading action until the user ticks the box and clicks
+// "Agree & continue". No click-outside-to-close and no Escape handler —
+// the only ways out are Agree (runs the pending action) or Cancel (drops it).
+let consentGiven = false;
+let pendingConsentAction = null;
+
+const consentModal = document.getElementById('consentModal');
+const consentCheckbox = document.getElementById('consentCheckbox');
+const consentAgreeBtn = document.getElementById('consentAgree');
+const consentDeclineBtn = document.getElementById('consentDecline');
+
+function requireConsent(action){
+  if (consentGiven){ action(); return; }
+  pendingConsentAction = action;
+  consentModal.classList.add('active');
+}
+
+consentCheckbox.addEventListener('change', () => {
+  consentAgreeBtn.disabled = !consentCheckbox.checked;
+  consentAgreeBtn.classList.toggle('enabled', consentCheckbox.checked);
+});
+
+consentAgreeBtn.addEventListener('click', () => {
+  if (!consentCheckbox.checked) return;
+  consentGiven = true;
+  consentModal.classList.remove('active');
+  const action = pendingConsentAction;
+  pendingConsentAction = null;
+  if (action) action();
+});
+
+consentDeclineBtn.addEventListener('click', () => {
+  consentModal.classList.remove('active');
+  pendingConsentAction = null;
+});
+
 // ---------- Gemini key ----------
 const geminiKeyInput = document.getElementById('geminiKey');
 const saveKeyBtn = document.getElementById('saveKeyBtn');
@@ -301,7 +439,7 @@ function extractYoutubeId(url){
   return m ? m[1] : null;
 }
 
-document.getElementById('loadYoutubeBtn').addEventListener('click', async () => {
+async function actuallyLoadYoutubeVideo(){
   const url = document.getElementById('youtubeUrlInput').value.trim();
   const videoId = extractYoutubeId(url);
   if (!videoId){ alert('Could not find a valid YouTube video ID in that URL.'); return; }
@@ -324,14 +462,22 @@ document.getElementById('loadYoutubeBtn').addEventListener('click', async () => 
       }
     });
   }
+}
+
+document.getElementById('loadYoutubeBtn').addEventListener('click', () => {
+  requireConsent(actuallyLoadYoutubeVideo);
 });
+
+function actuallyLoadUploadedFile(file){
+  previewVideo.src = URL.createObjectURL(file);
+  videoPreviewWrap.classList.add('active');
+  num2.classList.add('done'); num2.textContent = '✓';
+}
 
 fileInput.addEventListener('change', () => {
   const file = fileInput.files[0];
   if (!file) return;
-  previewVideo.src = URL.createObjectURL(file);
-  videoPreviewWrap.classList.add('active');
-  num2.classList.add('done'); num2.textContent = '✓';
+  requireConsent(() => actuallyLoadUploadedFile(file));
 });
 previewVideo.addEventListener('loadedmetadata', () => { videoDuration = previewVideo.duration; });
 
