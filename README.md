@@ -8,7 +8,6 @@
 [Report Bug](https://github.com/samhithnadig/solicio/issues/new?template=bug_report.md) · 
 [Request Feature](https://github.com/samhithnadig/solicio/issues/new?template=feature_request.md)
 
-![Solicio Demo](https://via.placeholder.com/800x400?text=Add+Your+Demo+GIF+Here)
 
 ## 💡 What is Solicio?
 
